@@ -15,3 +15,30 @@ ssh root@turingpi.local
 ```bash
 tpi flash -n 1 -l -i /mnt/sdcard/images/2024-11-19-raspios-bookworm-arm64-lite.img
 ```
+* Mount the eMMC:
+```bash
+tpi advanced msd --node 1
+mount /dev/sda1 /mnt/bootfs
+```
+* Enable uart messages to see the login logs:
+```bash
+echo "enable_uart=1" >> /mnt/bootfs/config.txt
+```
+* Enable SSH login, usename is `pi` and password is `raspberry`:
+```bash
+echo 'pi:$6$c70VpvPsVNCG0YR5$l5vWWLsLko9Kj65gcQ8qvMkuOoRkEagI90qi3F/Y7rm8eNYZHW8CY6BOIKwMH7a3YYzZYL90zf304cAHLFaZE0' > /mnt/bootfs/userconf
+```
+* Unmount the eMMC:
+```bash
+umount /mnt/bootfs
+```
+* Reboot the node:
+```bash
+tpi power -n 1 off
+tpi power -n 1 on
+```
+* You can check the boot logs using the following command:
+```bash
+tpi uart get -n 1
+```
+* Repeat the same steps for the other Raspberry Pi Compute Module 4 nodes
