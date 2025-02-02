@@ -5,8 +5,8 @@ PiCluster is a compact Kubernetes testbed built on a Turing Pi 2.5 carrier board
 
 ## Flash the eMMC on the Rasperry Pi Compute Module 4 and confidure the nodes
 * Download the latest Raspberry Pi OS Lite image from the [official website](https://www.raspberrypi.com/software/operating-systems/#raspberry-pi-os-64-bit)
-* Copy to the image into `image` folder on your micro SD card
-* Insert the micro SD card on the back of your Turin Pi carrier board
+* Copy to the image into the `image` folder on your micro SD card
+* Insert the micro SD card on the back of your Turing Pi carrier board
 * Log into your Turing Pi carrier board, default password is `turing`:
 ```bash
 ssh root@turingpi.local
