@@ -7,7 +7,7 @@ spec:
     node-role.kubernetes.io/worker: worker
   containers:
   - name: test-nfs-pod
-    image: busybox
+    image: arm64v8/busybox:latest
     command:
       - "/bin/sh"
     args:
