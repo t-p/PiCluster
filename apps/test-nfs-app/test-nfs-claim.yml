@@ -3,7 +3,7 @@ kind: PersistentVolumeClaim
 metadata:
   name: test-nfs-claim
 spec:
-  storageClassName: nfs-client
+  storageClassName: nfs
   accessModes:
     - ReadWriteMany
   resources:

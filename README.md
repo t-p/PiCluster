@@ -49,11 +49,11 @@ tpi uart get -n 1
 
 * add all nodes IP addresses to the `/etc/hosts` file for each Compute Module, like:
 ```
-127.0.0.1             localhost
-192.168.88.162 node01 node01.local
-192.168.88.167 node02 node02.local
-192.168.88.164 node03 node03.local
-192.168.88.163 node04 node04.local
+127.0.0.1      node01
+192.168.88.162 node04 node04.local
+192.168.88.167 node01 node01.local
+192.168.88.164 node02 node02.local
+192.168.88.163 node03 node03.local
 ```
 * change the hostname of each node to match the IP address:
 ```bash
