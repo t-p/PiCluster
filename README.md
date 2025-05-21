@@ -80,13 +80,20 @@ curl -sfL https://get.k3s.io | K3S_URL=https://192.168.88.163:6443 K3S_TOKEN=myS
 ```
 * label all worker nodes:
 ```bash
-kubectl label nodes node01 kubernetes.io/role=worker
-kubectl label nodes node02 kubernetes.io/role=worker
-kubectl label nodes node04 kubernetes.io/role=worker
+kubectl label node node01 node-role.kubernetes.io/worker=worker
+kubectl label node node02 node-role.kubernetes.io/worker=worker
+kubectl label node node04 node-role.kubernetes.io/worker=worker
 ```
-* also label the `node-type`:
+## Enable NFS storage
+* install the NFS server on the master node:
 ```bash
-kubectl label nodes node01 node-type=worker
-kubectl label nodes node02 node-type=worker
-kubectl label nodes node04 node-type=worker
+apt install nfs-kernel-server
+```
+* configure NFS exports in `/etc/exports` by adding the following line:
+```
+/mnt/storage       192.168.88.0/24(rw,sync,no_subtree_check)
+```
+* reload the NFS server:
+```bash
+sudo exportfs -ra
 ```
