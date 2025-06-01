@@ -1,0 +1,34 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: sonarr
+  namespace: sonarr
+  labels:
+    app: sonarr
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 8989
+    targetPort: 8989
+    protocol: TCP
+    name: http
+  selector:
+    app: sonarr
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sonarr-nodeport
+  namespace: sonarr
+  labels:
+    app: sonarr
+spec:
+  type: NodePort
+  ports:
+  - port: 8989
+    targetPort: 8989
+    nodePort: 30989
+    protocol: TCP
+    name: http
+  selector:
+    app: sonarr

@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jackett
+  namespace: jackett
+  labels:
+    app: jackett
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jackett
+  template:
+    metadata:
+      labels:
+        app: jackett
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: jackett
+          image: linuxserver/jackett:latest
+          ports:
+            - containerPort: 9117
+              name: http
+          env:
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "1000"
+            - name: TZ
+              value: "UTC"
+            - name: AUTO_UPDATE
+              value: "true"
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "50m"
+            limits:
+              memory: "512Mi"
+              cpu: "250m"
+          volumeMounts:
+            - name: jackett-config
+              mountPath: /config
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+          livenessProbe:
+            httpGet:
+              path: /UI/Dashboard
+              port: 9117
+            initialDelaySeconds: 60
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /UI/Dashboard
+              port: 9117
+            initialDelaySeconds: 30
+            periodSeconds: 10
+      volumes:
+        - name: jackett-config
+          persistentVolumeClaim:
+            claimName: jackett-config-pvc
+      nodeSelector:
+        node-role.kubernetes.io/worker: worker
+      tolerations:
+        - key: "arm"
+          operator: "Equal"
+          value: "true"
+          effect: "NoSchedule"
