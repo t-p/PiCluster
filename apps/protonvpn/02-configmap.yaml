@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: protonvpn-config
+  namespace: vpn
+data:
+  VPN_SERVICE_PROVIDER: "protonvpn"
+  VPN_TYPE: "openvpn"
+  OPENVPN_VERSION: "2.5"
+  FREE_ONLY: "on"
+  SERVER_COUNTRIES: "Netherlands"
+  FIREWALL: "on"
+  FIREWALL_VPN_INPUT_PORTS: "8080"
+  FIREWALL_INPUT_PORTS: "8080"
+  FIREWALL_OUTBOUND_SUBNETS: "192.168.88.0/24,10.42.0.0/16,10.43.0.0/16"
+  DOT: "off"
+  DNS_ADDRESS: "1.1.1.1"
+  BLOCK_MALICIOUS: "on"
+  BLOCK_ADS: "off"
+  BLOCK_SURVEILLANCE: "off"
+  UNBLOCK: ""
+  HEALTH_VPN_DURATION_INITIAL: "6s"
+  HEALTH_VPN_DURATION_ADDITION: "5s"
+  HEALTH_TARGET_ADDRESS: "cloudflare.com:443"
+  LOG_LEVEL: "info"
+  TZ: "UTC"
+  UPDATER_PERIOD: "24h"
+  PUBLICIP_PERIOD: "12h"
+  VERSION_INFORMATION: "on"
+  HTTPPROXY: "off"
+  SHADOWSOCKS: "off"
+  IPV6: "off"
