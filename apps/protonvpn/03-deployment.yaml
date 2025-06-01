@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: protonvpn
+  namespace: vpn
+  labels:
+    app: protonvpn
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: protonvpn
+  template:
+    metadata:
+      labels:
+        app: protonvpn
+    spec:
+      containers:
+      - name: gluetun
+        image: qmcgaw/gluetun:latest
+        securityContext:
+          capabilities:
+            add:
+            - NET_ADMIN
+          privileged: false
+          runAsNonRoot: false
+          runAsUser: 1000
+          runAsGroup: 1000
+        env:
+        - name: PUID
+          value: "1000"
+        - name: PGID
+          value: "1000"
+        envFrom:
+        - configMapRef:
+            name: protonvpn-config
+        - secretRef:
+            name: protonvpn-credentials
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        - containerPort: 8000
+          name: control
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8000
+          initialDelaySeconds: 15
+          periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 3
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        volumeMounts:
+        - name: dev-net-tun
+          mountPath: /dev/net/tun
+      volumes:
+      - name: dev-net-tun
+        hostPath:
+          path: /dev/net/tun
+          type: CharDevice
+      restartPolicy: Always
+      dnsPolicy: None
+      dnsConfig:
+        nameservers:
+        - 1.1.1.1
+        - 8.8.8.8
