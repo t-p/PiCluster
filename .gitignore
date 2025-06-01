@@ -1,0 +1,43 @@
+# Credentials and secrets
+**/credentials.env
+credentials.env
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Logs
+*.log
+logs/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Kubernetes sensitive files
+kubeconfig
+*.key
+*.crt
+*.pem
+
+# Backup files
+*.bak
+*.backup
