@@ -67,7 +67,7 @@ spec:
           claimName: sonarr-config-pvc
       - name: sonarr-downloads
         persistentVolumeClaim:
-          claimName: sonarr-downloads-pvc
+          claimName: shared-downloads-pvc
       - name: sonarr-tv
         persistentVolumeClaim:
           claimName: sonarr-tv-pvc

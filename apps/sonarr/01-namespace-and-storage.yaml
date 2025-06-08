@@ -12,7 +12,7 @@ metadata:
   namespace: sonarr
 spec:
   capacity:
-    storage: 5Gi
+    storage: 250Mi
   accessModes:
     - ReadWriteOnce
   persistentVolumeReclaimPolicy: Retain
@@ -21,22 +21,7 @@ spec:
     server: 192.168.88.163
     path: /mnt/storage/sonarr/config
 ---
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: sonarr-downloads-pv
-  namespace: sonarr
-spec:
-  capacity:
-    storage: 100Gi
-  accessModes:
-    - ReadWriteMany
-  persistentVolumeReclaimPolicy: Retain
-  storageClassName: nfs
-  nfs:
-    server: 192.168.88.163
-    path: /mnt/storage/sonarr/downloads
----
+
 apiVersion: v1
 kind: PersistentVolume
 metadata:
@@ -64,13 +49,13 @@ spec:
   storageClassName: nfs
   resources:
     requests:
-      storage: 5Gi
+      storage: 250Mi
   volumeName: sonarr-config-pv
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: sonarr-downloads-pvc
+  name: shared-downloads-pvc
   namespace: sonarr
 spec:
   accessModes:
@@ -78,8 +63,7 @@ spec:
   storageClassName: nfs
   resources:
     requests:
-      storage: 100Gi
-  volumeName: sonarr-downloads-pv
+      storage: 200Gi
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim

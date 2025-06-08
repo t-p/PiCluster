@@ -1,0 +1,225 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: transmission-config-pv
+spec:
+  capacity:
+    storage: 500Mi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: nfs
+  nfs:
+    server: 192.168.88.163
+    path: /mnt/storage/transmission/config
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: transmission-config-pvc
+  namespace: transmission
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: nfs
+  resources:
+    requests:
+      storage: 500Mi
+  volumeName: transmission-config-pv
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: transmission-downloads-pv
+spec:
+  capacity:
+    storage: 200Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: nfs
+  nfs:
+    server: 192.168.88.163
+    path: /mnt/storage/transmission/downloads
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: transmission-downloads-pvc
+  namespace: transmission
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs
+  resources:
+    requests:
+      storage: 200Gi
+  volumeName: transmission-downloads-pv
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: transmission-vpn
+  namespace: transmission
+  labels:
+    app: transmission-vpn
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: transmission-vpn
+  template:
+    metadata:
+      labels:
+        app: transmission-vpn
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: gluetun
+          image: qmcgaw/gluetun:latest
+          securityContext:
+            capabilities:
+              add: [NET_ADMIN, SYS_MODULE]
+            privileged: true
+            runAsNonRoot: false
+            runAsUser: 0
+          env:
+            - name: VPN_SERVICE_PROVIDER
+              value: "protonvpn"
+            - name: OPENVPN_PROTOCOL
+              value: "tcp"
+            - name: SERVER_CITIES
+              value: "Amsterdam"
+            - name: TZ
+              value: "UTC"
+            - name: FIREWALL
+              value: "on"
+            - name: FIREWALL_VPN_INPUT_PORTS
+              value: "9091,51413"
+            - name: FIREWALL_INPUT_PORTS
+              value: "9091,51413"
+            - name: DOT
+              value: "off"
+            - name: HEALTH_SERVER_ADDRESS
+              value: ":9999"
+          envFrom:
+            - secretRef:
+                name: protonvpn-credentials
+          ports:
+            - containerPort: 9091
+              name: webui
+              protocol: TCP
+            - containerPort: 51413
+              name: torrent-tcp
+              protocol: TCP
+            - containerPort: 51413
+              name: torrent-udp
+              protocol: UDP
+            - containerPort: 9999
+              name: health
+              protocol: TCP
+          volumeMounts:
+            - name: dev-net-tun
+              mountPath: /dev/net/tun
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 9999
+            initialDelaySeconds: 60
+            periodSeconds: 60
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 9999
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+        - name: transmission
+          image: linuxserver/transmission:latest
+          env:
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "1000"
+            - name: TZ
+              value: "UTC"
+            - name: TRANSMISSION_WEB_HOME
+              value: "/flood-for-transmission/"
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+          volumeMounts:
+            - name: transmission-config
+              mountPath: /config
+            - name: transmission-downloads
+              mountPath: /downloads
+
+          livenessProbe:
+            httpGet:
+              path: /transmission/web/
+              port: 9091
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /transmission/web/
+              port: 9091
+            initialDelaySeconds: 90
+            periodSeconds: 15
+            timeoutSeconds: 5
+          resources:
+            requests:
+              memory: 256Mi
+              cpu: 100m
+            limits:
+              memory: 1Gi
+              cpu: 500m
+      volumes:
+        - name: dev-net-tun
+          hostPath:
+            path: /dev/net/tun
+            type: CharDevice
+        - name: transmission-config
+          persistentVolumeClaim:
+            claimName: transmission-config-pvc
+        - name: transmission-downloads
+          persistentVolumeClaim:
+            claimName: transmission-downloads-pvc
+
+      nodeSelector:
+        node-role.kubernetes.io/worker: worker
+      tolerations:
+        - effect: NoSchedule
+          key: arm
+          operator: Equal
+          value: "true"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: transmission-vpn
+  namespace: transmission
+  labels:
+    app: transmission-vpn
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 9091
+      targetPort: 9091
+      protocol: TCP
+      name: webui
+    - port: 51413
+      targetPort: 51413
+      protocol: TCP
+      name: torrent-tcp
+    - port: 51413
+      targetPort: 51413
+      protocol: UDP
+      name: torrent-udp
+  selector:
+    app: transmission-vpn

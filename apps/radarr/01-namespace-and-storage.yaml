@@ -12,7 +12,7 @@ metadata:
   namespace: radarr
 spec:
   capacity:
-    storage: 5Gi
+    storage: 250Mi
   accessModes:
     - ReadWriteOnce
   persistentVolumeReclaimPolicy: Retain
@@ -20,22 +20,7 @@ spec:
   nfs:
     server: 192.168.88.163
     path: /mnt/storage/radarr/config
----
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: radarr-downloads-pv
-  namespace: radarr
-spec:
-  capacity:
-    storage: 100Gi
-  accessModes:
-    - ReadWriteMany
-  persistentVolumeReclaimPolicy: Retain
-  storageClassName: nfs
-  nfs:
-    server: 192.168.88.163
-    path: /mnt/storage/sonarr/downloads
+
 ---
 apiVersion: v1
 kind: PersistentVolume
@@ -64,22 +49,9 @@ spec:
   storageClassName: nfs
   resources:
     requests:
-      storage: 5Gi
+      storage: 250Mi
   volumeName: radarr-config-pv
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: radarr-downloads-pvc
-  namespace: radarr
-spec:
-  accessModes:
-    - ReadWriteMany
-  storageClassName: nfs
-  resources:
-    requests:
-      storage: 100Gi
-  volumeName: radarr-downloads-pv
+
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
