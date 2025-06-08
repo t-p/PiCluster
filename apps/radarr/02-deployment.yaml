@@ -54,8 +54,9 @@ spec:
         persistentVolumeClaim:
           claimName: radarr-config-pvc
       - name: radarr-downloads
-        persistentVolumeClaim:
-          claimName: radarr-downloads-pvc
+        nfs:
+          server: 192.168.88.163
+          path: /mnt/storage/shared/downloads
       - name: radarr-movies
         persistentVolumeClaim:
           claimName: radarr-movies-pvc

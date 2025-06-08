@@ -17,6 +17,7 @@ spec:
     spec:
       securityContext:
         fsGroup: 1000
+        supplementalGroups: [44, 109]  # video and render groups
       containers:
       - name: jellyfin
         image: jellyfin/jellyfin:latest
@@ -33,7 +34,7 @@ spec:
           protocol: UDP
         env:
         - name: JELLYFIN_PublishedServerUrl
-          value: "http://jellyfin.local:8096"
+          value: "http://192.168.88.162:8096"
         - name: TZ
           value: "UTC"
         resources:
@@ -51,9 +52,14 @@ spec:
         - name: jellyfin-media
           mountPath: /media
           readOnly: true
+        - name: gpu-device
+          mountPath: /dev/dri
+          readOnly: false
         securityContext:
           runAsUser: 1000
           runAsGroup: 1000
+          privileged: false
+          allowPrivilegeEscalation: false
         livenessProbe:
           httpGet:
             path: /health
@@ -76,6 +82,9 @@ spec:
       - name: jellyfin-media
         persistentVolumeClaim:
           claimName: jellyfin-media-pvc
+      - name: gpu-device
+        hostPath:
+          path: /dev/dri
       nodeSelector:
         node-role.kubernetes.io/worker: worker
       tolerations:
