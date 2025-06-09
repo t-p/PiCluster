@@ -53,11 +53,11 @@ services:
         url: "http://192.168.88.162:9091"
         target: "_blank"
 
-      - name: "Jackett"
+      - name: "Prowlarr"
         icon: "fas fa-search"
-        subtitle: "Indexer proxy for trackers"
+        subtitle: "Indexer manager"
         tag: "indexer"
-        url: "http://192.168.88.162:9117"
+        url: "http://192.168.88.162:30996"
         target: "_blank"
 
   - name: "Cluster Management"
