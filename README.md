@@ -276,10 +276,9 @@ This K3s cluster hosts a complete media server stack with automated content mana
 - **Namespace**: `transmission`
 - **Description**: BitTorrent client with integrated VPN protection via Gluetun
 - **Features**:
-  - WireGuard integration with kill-switch
+  - OpenVPN integration with kill-switch
   - Automatic VPN health monitoring
   - Firewall protection (only VPN traffic allowed)
-  - Custom DNS server for enhanced privacy
   - Public IP verification and logging
 - **VPN Status**: Automatically monitored with health checks
 - **Storage**: 
@@ -352,7 +351,7 @@ The media server uses NFS-based persistent storage with the following structure:
 ### Network Configuration
 
 - **Load Balancer**: Uses K3s built-in load balancer with VIP spanning all nodes
-- **VPN Protection**: Transmission pod routes all traffic through WireGuard tunnel
+- **VPN Protection**: Transmission pod routes all traffic through OpenVPN tunnel
 - **NodePort Services**: Direct node access for core services (Homer, Jellyfin, Dashboard)
 - **Internal Communication**: Apps communicate via Kubernetes service discovery
 
@@ -397,7 +396,7 @@ kubectl logs -n radarr deployment/radarr
 
 ### Security Features
 
-1. **VPN Protection**: All torrent traffic routed through encrypted WireGuard tunnel
+1. **VPN Protection**: All torrent traffic routed through encrypted VPN tunnel
 2. **Network Isolation**: Applications isolated in separate namespaces
 3. **Firewall Rules**: Gluetun enforces strict firewall allowing only VPN traffic
 4. **Private Networking**: Internal service communication over cluster network
