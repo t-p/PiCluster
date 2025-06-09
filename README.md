@@ -155,7 +155,7 @@ curl -sfL https://get.k3s.io | K3S_URL=https://192.168.88.163:6443 K3S_TOKEN=<TO
 From the control plane node, label all worker nodes:
 ```bash
 kubectl label node node01 node-role.kubernetes.io/worker=worker
-kubectl label node node02 node-role.kubernetes.io/worker=worker  
+kubectl label node node02 node-role.kubernetes.io/worker=worker
 kubectl label node node04 node-role.kubernetes.io/worker=worker
 ```
 
@@ -262,12 +262,12 @@ This K3s cluster hosts a complete media server stack with automated content mana
 #### 🎬 Jellyfin - Media Server
 - **Namespace**: `jellyfin`
 - **Description**: Open-source media server for streaming movies, TV shows, and music
-- **Features**: 
+- **Features**:
   - Hardware transcoding support
   - Multiple client support (web, mobile, TV apps)
   - User management and content libraries
   - DLNA/UPnP support for local network streaming
-- **Storage**: 
+- **Storage**:
   - Config: `/mnt/storage/jellyfin/config`
   - Media: `/mnt/storage/media` (shared with other apps)
 - **Ports**: 8096 (HTTP), 8920 (HTTPS), 1900 (DLNA), 7359 (Discovery)
@@ -276,12 +276,13 @@ This K3s cluster hosts a complete media server stack with automated content mana
 - **Namespace**: `transmission`
 - **Description**: BitTorrent client with integrated VPN protection via Gluetun
 - **Features**:
-  - OpenVPN integration with kill-switch
+  - WireGuard integration with kill-switch
   - Automatic VPN health monitoring
   - Firewall protection (only VPN traffic allowed)
+  - Custom DNS server for enhanced privacy
   - Public IP verification and logging
 - **VPN Status**: Automatically monitored with health checks
-- **Storage**: 
+- **Storage**:
   - Config: `/mnt/storage/transmission/config`
   - Downloads: `/mnt/storage/downloads` (shared with *arr apps)
 
@@ -351,7 +352,7 @@ The media server uses NFS-based persistent storage with the following structure:
 ### Network Configuration
 
 - **Load Balancer**: Uses K3s built-in load balancer with VIP spanning all nodes
-- **VPN Protection**: Transmission pod routes all traffic through OpenVPN tunnel
+- **VPN Protection**: Transmission pod routes all traffic through WireGuard tunnel
 - **NodePort Services**: Direct node access for core services (Homer, Jellyfin, Dashboard)
 - **Internal Communication**: Apps communicate via Kubernetes service discovery
 
@@ -396,7 +397,7 @@ kubectl logs -n radarr deployment/radarr
 
 ### Security Features
 
-1. **VPN Protection**: All torrent traffic routed through encrypted VPN tunnel
+1. **VPN Protection**: All torrent traffic routed through encrypted WireGuard tunnel
 2. **Network Isolation**: Applications isolated in separate namespaces
 3. **Firewall Rules**: Gluetun enforces strict firewall allowing only VPN traffic
 4. **Private Networking**: Internal service communication over cluster network

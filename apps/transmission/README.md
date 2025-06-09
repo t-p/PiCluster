@@ -9,7 +9,6 @@ Transmission is a fast, easy, and free BitTorrent client. This deployment includ
 
 - **Transmission**: BitTorrent client with web interface
 - **Gluetun**: VPN client providing secure tunnel (Mullvad configured)
-- **Flood UI**: Modern web interface for Transmission
 - **Integrated storage**: Shared download directories for Sonarr/Radarr integration
 
 ## Prerequisites
@@ -45,7 +44,6 @@ Transmission is a fast, easy, and free BitTorrent client. This deployment includ
    kubectl apply -f 01-namespace-and-storage.yaml
    kubectl apply -f 02-deployment.yaml
    kubectl apply -f 03-service.yaml
-   kubectl apply -f 04-configmap.yaml
    ```
 
 3. **Access Transmission:**
@@ -96,7 +94,6 @@ kubectl create secret generic mullvad-credentials \
 # Deploy main application
 kubectl apply -f 02-deployment.yaml
 kubectl apply -f 03-service.yaml
-kubectl apply -f 04-configmap.yaml
 ```
 
 ## Storage Structure
@@ -217,15 +214,6 @@ ls -la /mnt/storage/transmission/downloads/
 # In 02-deployment.yaml, modify:
 - name: SERVER_CITIES
   value: "Stockholm"  # Or any Mullvad city
-```
-
-### Adding Port Forwarding:
-```yaml
-# Add to Gluetun environment variables:
-- name: VPN_PORT_FORWARDING
-  value: "on"
-- name: FIREWALL_VPN_INPUT_PORTS
-  value: "9091,51413,<forwarded-port>"
 ```
 
 ## ARM64 Optimizations
