@@ -8,15 +8,14 @@ This directory contains Kubernetes manifests to deploy Transmission BitTorrent c
 Transmission is a fast, easy, and free BitTorrent client. This deployment includes:
 
 - **Transmission**: BitTorrent client with web interface
-- **Gluetun**: VPN client providing secure tunnel (ProtonVPN configured)
-- **Flood UI**: Modern web interface for Transmission
+- **Gluetun**: VPN client providing secure tunnel (Mullvad configured)
 - **Integrated storage**: Shared download directories for Sonarr/Radarr integration
 
 ## Prerequisites
 
 - PiCluster with K3s installed and running
 - NFS server configured on master node (192.168.88.163)
-- ProtonVPN credentials (stored as Kubernetes secret)
+- Mullvad credentials (stored as Kubernetes secret)
 - At least 1GB RAM available across worker nodes
 - Privileged containers support for VPN functionality
 
@@ -30,21 +29,21 @@ Transmission is a fast, easy, and free BitTorrent client. This deployment includ
 
 ## Quick Start
 
-1. **Create ProtonVPN credentials secret:**
+1. **Create Mullvad credentials secret:**
    ```bash
-   kubectl create secret generic protonvpn-credentials \
-     --from-literal=OPENVPN_USER='<your-protonvpn-username>' \
-     --from-literal=OPENVPN_PASSWORD='<your-protonvpn-password>' \
+   kubectl create secret generic mullvad-credentials \
+     --from-literal=WIREGUARD_PRIVATE_KEY='<your-mullvad-private-key>' \
+     --from-literal=WIREGUARD_ADDRESSES='<your-mullvad-address>' \
+     --from-literal=DNS='<your-custom-dns-server>' \
      -n transmission
    ```
 
 2. **Deploy Transmission with VPN:**
    ```bash
    cd apps/transmission
-   kubectl apply -f 01-namespace.yaml
-   kubectl apply -f 02-transmission-shared-vpn.yaml
+   kubectl apply -f 01-namespace-and-storage.yaml
+   kubectl apply -f 02-deployment.yaml
    kubectl apply -f 03-service.yaml
-   kubectl apply -f 04-configmap.yaml
    ```
 
 3. **Access Transmission:**
@@ -69,7 +68,7 @@ kubectl logs -f deployment/transmission-vpn -n transmission -c transmission
 - Check node resources and scheduling constraints
 
 **VPN connection issues:**
-- Verify ProtonVPN credentials in secret
+- Verify Mullvad credentials in secret
 - Check Gluetun logs for connection details
 - Test VPN health endpoint connectivity
 
@@ -83,18 +82,18 @@ ssh pi@192.168.88.163 "sudo mkdir -p /mnt/storage/transmission/{config,downloads
 ssh pi@192.168.88.163 "sudo chown -R 1000:1000 /mnt/storage/transmission"
 
 # Create namespace
-kubectl apply -f 01-namespace.yaml
+kubectl apply -f 01-namespace-and-storage.yaml
 
 # Create VPN credentials secret (replace with your credentials)
-kubectl create secret generic protonvpn-credentials \
-  --from-literal=OPENVPN_USER='your-username' \
-  --from-literal=OPENVPN_PASSWORD='your-password' \
+kubectl create secret generic mullvad-credentials \
+  --from-literal=WIREGUARD_PRIVATE_KEY='your-private-key' \
+  --from-literal=WIREGUARD_ADDRESSES='your-address' \
+  --from-literal=DNS='your-custom-dns-server' \
   -n transmission
 
 # Deploy main application
-kubectl apply -f 02-transmission-shared-vpn.yaml
+kubectl apply -f 02-deployment.yaml
 kubectl apply -f 03-service.yaml
-kubectl apply -f 04-configmap.yaml
 ```
 
 ## Storage Structure
@@ -110,13 +109,26 @@ kubectl apply -f 04-configmap.yaml
 
 ## VPN Configuration
 
-### ProtonVPN Settings
+### Mullvad Settings
 
-The deployment is configured for ProtonVPN with:
-- **Protocol**: TCP (more reliable for containers)
+The deployment is configured for Mullvad with:
+- **Protocol**: WireGuard (fast and secure)
 - **Server**: Amsterdam (configurable via SERVER_CITIES env var)
 - **Firewall**: Enabled with kill-switch functionality
-- **DNS**: Secure DNS through VPN tunnel
+- **DNS**: Custom DNS server configured in secret
+
+### DNS Configuration
+
+The deployment uses a custom DNS server instead of the default VPN provider DNS:
+- **DNS Server**: Configurable custom DNS server IP
+- **Storage**: Configured in the `mullvad-credentials` secret
+- **Purpose**: Provides custom DNS resolution for all VPN traffic
+- **Security**: DNS queries are still routed through the VPN tunnel
+
+To update the DNS server:
+```bash
+kubectl patch secret mullvad-credentials -n transmission -p '{"data":{"DNS":"<base64-encoded-dns-ip>"}}'
+```
 
 ### Firewall Protection
 
@@ -199,18 +211,9 @@ ls -la /mnt/storage/transmission/downloads/
 
 ### Changing VPN Server:
 ```yaml
-# In 02-transmission-shared-vpn.yaml, modify:
+# In 02-deployment.yaml, modify:
 - name: SERVER_CITIES
-  value: "Stockholm"  # Or any ProtonVPN city
-```
-
-### Adding Port Forwarding:
-```yaml
-# Add to Gluetun environment variables:
-- name: VPN_PORT_FORWARDING
-  value: "on"
-- name: FIREWALL_VPN_INPUT_PORTS
-  value: "9091,51413,<forwarded-port>"
+  value: "Stockholm"  # Or any Mullvad city
 ```
 
 ## ARM64 Optimizations
@@ -267,6 +270,6 @@ For high availability, consider:
 
 - [Transmission Documentation](https://github.com/transmission/transmission/wiki)
 - [Gluetun VPN Client](https://github.com/qdm12/gluetun)
-- [ProtonVPN Setup Guide](https://protonvpn.com/support/linux-openvpn/)
+- [Mullvad Setup Guide](https://mullvad.net/en/help/wireguard-and-mullvad-vpn)
 - [LinuxServer.io Docker Images](https://docs.linuxserver.io/images/docker-transmission)
 - [Flood UI Documentation](https://flood.js.org/)

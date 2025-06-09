@@ -1,61 +1,3 @@
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: transmission-config-pv
-spec:
-  capacity:
-    storage: 500Mi
-  accessModes:
-    - ReadWriteOnce
-  persistentVolumeReclaimPolicy: Retain
-  storageClassName: nfs
-  nfs:
-    server: 192.168.88.163
-    path: /mnt/storage/transmission/config
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: transmission-config-pvc
-  namespace: transmission
-spec:
-  accessModes:
-    - ReadWriteOnce
-  storageClassName: nfs
-  resources:
-    requests:
-      storage: 500Mi
-  volumeName: transmission-config-pv
----
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: transmission-downloads-pv
-spec:
-  capacity:
-    storage: 200Gi
-  accessModes:
-    - ReadWriteMany
-  persistentVolumeReclaimPolicy: Retain
-  storageClassName: nfs
-  nfs:
-    server: 192.168.88.163
-    path: /mnt/storage/transmission/downloads
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: transmission-downloads-pvc
-  namespace: transmission
-spec:
-  accessModes:
-    - ReadWriteMany
-  storageClassName: nfs
-  resources:
-    requests:
-      storage: 200Gi
-  volumeName: transmission-downloads-pv
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -86,11 +28,13 @@ spec:
             runAsUser: 0
           env:
             - name: VPN_SERVICE_PROVIDER
-              value: "protonvpn"
-            - name: OPENVPN_PROTOCOL
-              value: "tcp"
+              value: mullvad
+            - name: VPN_TYPE
+              value: wireguard
             - name: SERVER_CITIES
               value: "Amsterdam"
+            - name: WIREGUARD_ENDPOINT_PORT
+              value: "51820"
             - name: TZ
               value: "UTC"
             - name: FIREWALL
@@ -105,7 +49,7 @@ spec:
               value: ":9999"
           envFrom:
             - secretRef:
-                name: protonvpn-credentials
+                name: mullvad-credentials
           ports:
             - containerPort: 9091
               name: webui
@@ -146,8 +90,6 @@ spec:
               value: "1000"
             - name: TZ
               value: "UTC"
-            - name: TRANSMISSION_WEB_HOME
-              value: "/flood-for-transmission/"
           securityContext:
             runAsUser: 1000
             runAsGroup: 1000
@@ -198,28 +140,3 @@ spec:
           key: arm
           operator: Equal
           value: "true"
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: transmission-vpn
-  namespace: transmission
-  labels:
-    app: transmission-vpn
-spec:
-  type: LoadBalancer
-  ports:
-    - port: 9091
-      targetPort: 9091
-      protocol: TCP
-      name: webui
-    - port: 51413
-      targetPort: 51413
-      protocol: TCP
-      name: torrent-tcp
-    - port: 51413
-      targetPort: 51413
-      protocol: UDP
-      name: torrent-udp
-  selector:
-    app: transmission-vpn
