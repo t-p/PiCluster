@@ -66,3 +66,16 @@ spec:
     requests:
       storage: 2Ti
   volumeName: radarr-movies-pv
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: shared-downloads-pvc
+  namespace: radarr
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs
+  resources:
+    requests:
+      storage: 200Gi
