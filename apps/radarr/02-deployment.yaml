@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: radarr
-  namespace: radarr
+  namespace: downloads
   labels:
     app: radarr
 spec:
@@ -42,7 +42,7 @@ spec:
         volumeMounts:
         - name: radarr-config
           mountPath: /config
-        - name: radarr-downloads
+        - name: shared-downloads
           mountPath: /downloads
         - name: radarr-movies
           mountPath: /movies
@@ -53,7 +53,7 @@ spec:
       - name: radarr-config
         persistentVolumeClaim:
           claimName: radarr-config-pvc
-      - name: radarr-downloads
+      - name: shared-downloads
         persistentVolumeClaim:
           claimName: shared-downloads-pvc
       - name: radarr-movies

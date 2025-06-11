@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: transmission-vpn
-  namespace: transmission
+  namespace: downloads
   labels:
     app: transmission-vpn
 spec:
@@ -98,7 +98,6 @@ spec:
               mountPath: /config
             - name: transmission-downloads
               mountPath: /downloads
-
           livenessProbe:
             httpGet:
               path: /transmission/web/
@@ -132,7 +131,6 @@ spec:
         - name: transmission-downloads
           persistentVolumeClaim:
             claimName: shared-downloads-pvc
-
       nodeSelector:
         node-role.kubernetes.io/worker: worker
       tolerations:

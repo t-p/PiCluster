@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: sonarr
-  namespace: sonarr
+  namespace: downloads
   labels:
     app: sonarr
 spec:
@@ -42,7 +42,7 @@ spec:
         volumeMounts:
         - name: sonarr-config
           mountPath: /config
-        - name: sonarr-downloads
+        - name: shared-downloads
           mountPath: /downloads
         - name: sonarr-tv
           mountPath: /tv
@@ -65,7 +65,7 @@ spec:
       - name: sonarr-config
         persistentVolumeClaim:
           claimName: sonarr-config-pvc
-      - name: sonarr-downloads
+      - name: shared-downloads
         persistentVolumeClaim:
           claimName: shared-downloads-pvc
       - name: sonarr-tv
