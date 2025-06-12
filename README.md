@@ -2,7 +2,29 @@
 
 PiCluster is a compact Kubernetes testbed built on a Turing Pi 2.5 carrier board with 4x Raspberry Pi Compute Module 4 nodes, running a complete media server stack.
 
-![Turing Pi Board](images/turing-pi-board.jpg)
+<p align="center">
+  <img src="images/turing-pi-board.jpg" alt="Turing Pi Board" width="400"/>
+</p>
+
+---
+
+## 📑 Index
+
+- [Hardware Setup](#hardware-setup)
+- [Kubernetes Installation (K3s)](#kubernetes-installation-k3s)
+- [Storage Configuration (NFS)](#storage-configuration-nfs)
+- [Remote Access Setup](#remote-access-setup)
+- [Media Server Applications](#media-server-applications)
+  - [Application Stack Overview](#application-stack-overview)
+  - [Detailed Application Information](#detailed-application-information)
+  - [Storage Architecture](#storage-architecture)
+  - [Network Configuration](#network-configuration)
+  - [Deployment and Management](#deployment-and-management)
+  - [Security Features](#security-features)
+  - [Integration Workflow](#integration-workflow)
+- [Sub-Project READMEs](#sub-project-readmes)
+
+---
 
 ## Hardware Setup
 
@@ -241,15 +263,15 @@ This K3s cluster hosts a complete media server stack with automated content mana
 
 ### Application Stack Overview
 
-| Application | Purpose | Access URL | Service Type |
-|-------------|---------|------------|--------------|
-| **Homer** | Dashboard & Service Directory | `http://192.168.88.163:30080` | NodePort |
-| **Jellyfin** | Media Server & Streaming | `http://192.168.88.163:8096` | LoadBalancer |
-| **Transmission** | BitTorrent Client (VPN Protected) | `http://192.168.88.163:9091` | LoadBalancer |
-| **Sonarr** | TV Series Management | `http://192.168.88.163:8989` | LoadBalancer |
-| **Radarr** | Movie Management | `http://192.168.88.163:7878` | LoadBalancer |
-| **Jackett** | Torrent Indexer Proxy | `http://192.168.88.163:9117` | LoadBalancer |
-| **K8s Dashboard** | Kubernetes Management UI | `http://192.168.88.163:30443` | NodePort |
+| Application | Purpose | Access URL | Service Type | Docs |
+|-------------|---------|------------|--------------|------|
+| **Homer** | Dashboard & Service Directory | `http://192.168.88.163:30080` | NodePort | [Homer README](apps/homer/README.md) |
+| **Jellyfin** | Media Server & Streaming | `http://192.168.88.163:8096` | LoadBalancer | [Jellyfin README](apps/jellyfin/README.md) |
+| **Transmission** | BitTorrent Client (VPN Protected) | `http://192.168.88.163:9091` | LoadBalancer | [Transmission README](apps/transmission/README.md) |
+| **Sonarr** | TV Series Management | `http://192.168.88.163:8989` | LoadBalancer | [Sonarr README](apps/sonarr/README.md) |
+| **Radarr** | Movie Management | `http://192.168.88.163:7878` | LoadBalancer | [Radarr README](apps/radarr/README.md) |
+| **Jackett** | Torrent Indexer Proxy | `http://192.168.88.163:9117` | LoadBalancer | |
+| **K8s Dashboard** | Kubernetes Management UI | `http://192.168.88.163:30443` | NodePort | [Kubernetes Dashboard README](apps/kubernetes-dashboard/README.md) |
 
 ### Detailed Application Information
 
@@ -258,6 +280,7 @@ This K3s cluster hosts a complete media server stack with automated content mana
 - **Description**: Centralized dashboard providing easy access to all media server services
 - **Features**: Service status monitoring, custom themes, organized service tiles
 - **Configuration**: Mounted via NFS from `/mnt/storage/homer/config`
+- **More info**: [apps/homer/README.md](apps/homer/README.md)
 
 #### 🎬 Jellyfin - Media Server
 - **Namespace**: `jellyfin`
@@ -271,9 +294,10 @@ This K3s cluster hosts a complete media server stack with automated content mana
   - Config: `/mnt/storage/jellyfin/config`
   - Media: `/mnt/storage/media` (shared with other apps)
 - **Ports**: 8096 (HTTP), 8920 (HTTPS), 1900 (DLNA), 7359 (Discovery)
+- **More info**: [apps/jellyfin/README.md](apps/jellyfin/README.md)
 
 #### 🔒 Transmission - Torrent Client (VPN Protected)
-- **Namespace**: `transmission`
+- **Namespace**: `downloads`
 - **Description**: BitTorrent client with integrated VPN protection via Gluetun
 - **Features**:
   - WireGuard integration with kill-switch
@@ -284,10 +308,11 @@ This K3s cluster hosts a complete media server stack with automated content mana
 - **VPN Status**: Automatically monitored with health checks
 - **Storage**:
   - Config: `/mnt/storage/transmission/config`
-  - Downloads: `/mnt/storage/downloads` (shared with *arr apps)
+  - Downloads: `/mnt/storage/shared/downloads` (shared with *arr apps)
+- **More info**: [apps/transmission/README.md](apps/transmission/README.md)
 
 #### 📺 Sonarr - TV Series Management
-- **Namespace**: `sonarr`
+- **Namespace**: `downloads`
 - **Description**: Automated TV series collection and management
 - **Features**:
   - Automatic episode monitoring and downloading
@@ -296,11 +321,12 @@ This K3s cluster hosts a complete media server stack with automated content mana
   - Episode renaming and organization
 - **Storage**:
   - Config: `/mnt/storage/sonarr/config`
-  - TV Shows: `/mnt/storage/media/tv`
-  - Downloads: `/mnt/storage/downloads` (shared)
+  - TV Shows: `/mnt/storage/jellyfin/media/tv-shows`
+  - Downloads: `/mnt/storage/shared/downloads` (shared)
+- **More info**: [apps/sonarr/README.md](apps/sonarr/README.md)
 
 #### 🎭 Radarr - Movie Management
-- **Namespace**: `radarr`
+- **Namespace**: `downloads`
 - **Description**: Automated movie collection and management
 - **Features**:
   - Automatic movie monitoring and downloading
@@ -309,8 +335,9 @@ This K3s cluster hosts a complete media server stack with automated content mana
   - Movie metadata and artwork
 - **Storage**:
   - Config: `/mnt/storage/radarr/config`
-  - Movies: `/mnt/storage/media/movies`
-  - Downloads: `/mnt/storage/downloads` (shared)
+  - Movies: `/mnt/storage/jellyfin/media/movies`
+  - Downloads: `/mnt/storage/shared/downloads` (shared)
+- **More info**: [apps/radarr/README.md](apps/radarr/README.md)
 
 #### 🔍 Jackett - Indexer Proxy
 - **Namespace**: `jackett`
@@ -329,6 +356,7 @@ This K3s cluster hosts a complete media server stack with automated content mana
   - Pod logs and terminal access
   - Deployment scaling and updates
   - Service and ingress management
+- **More info**: [apps/kubernetes-dashboard/README.md](apps/kubernetes-dashboard/README.md)
 
 ### Storage Architecture
 
@@ -342,12 +370,14 @@ The media server uses NFS-based persistent storage with the following structure:
 ├── sonarr/config/         # Sonarr application data
 ├── radarr/config/         # Radarr application data
 ├── jackett/config/        # Jackett indexer configurations
-├── downloads/             # Shared download directory (Transmission → *arr apps)
-└── media/
+├── shared/downloads/      # Shared download directory (Transmission, Sonarr, Radarr)
+└── jellyfin/media/
     ├── movies/            # Organized movie library (Radarr → Jellyfin)
-    ├── tv/                # Organized TV show library (Sonarr → Jellyfin)
+    ├── tv-shows/          # Organized TV show library (Sonarr → Jellyfin)
     └── music/             # Music library (manual/future automation)
 ```
+
+For more details on storage and shared PVCs, see [downloads-storage/README.md](apps/downloads-storage/README.md).
 
 ### Network Configuration
 
@@ -415,3 +445,8 @@ The applications work together in an automated content acquisition pipeline:
 6. **Streaming**: Content available for streaming through Jellyfin
 
 This setup provides a fully automated, secure, and scalable media server solution running on Kubernetes.
+
+---
+
+
+
