@@ -18,6 +18,7 @@ Transmission is a fast, easy, and free BitTorrent client. This deployment includ
 - Mullvad credentials (stored as Kubernetes secret)
 - At least 1GB RAM available across worker nodes
 - Privileged containers support for VPN functionality
+- All resources deployed in the `downloads` namespace
 
 ## Security Features
 
@@ -35,13 +36,13 @@ Transmission is a fast, easy, and free BitTorrent client. This deployment includ
      --from-literal=WIREGUARD_PRIVATE_KEY='<your-mullvad-private-key>' \
      --from-literal=WIREGUARD_ADDRESSES='<your-mullvad-address>' \
      --from-literal=DNS='<your-custom-dns-server>' \
-     -n transmission
+     -n downloads
    ```
 
 2. **Deploy Transmission with VPN:**
    ```bash
    cd apps/transmission
-   kubectl apply -f 01-namespace-and-storage.yaml
+   kubectl apply -f 01-storage.yaml
    kubectl apply -f 02-deployment.yaml
    kubectl apply -f 03-service.yaml
    ```
@@ -49,15 +50,16 @@ Transmission is a fast, easy, and free BitTorrent client. This deployment includ
 3. **Access Transmission:**
    - Web interface: `http://192.168.88.162:9091/transmission/web/`
    - Or any node IP: `http://192.168.88.16X:9091/transmission/web/`
+   - Or via NodePort: `http://<node-ip>:<nodeport>` (see `kubectl get svc -n downloads`)
 
 ## Troubleshooting
 
 ### Check pod status:
 ```bash
-kubectl get pods -n transmission
-kubectl describe pod <pod-name> -n transmission
-kubectl logs -f deployment/transmission-vpn -n transmission -c gluetun
-kubectl logs -f deployment/transmission-vpn -n transmission -c transmission
+kubectl get pods -n downloads
+kubectl describe pod <pod-name> -n downloads
+kubectl logs -f deployment/transmission-vpn -n downloads -c gluetun
+kubectl logs -f deployment/transmission-vpn -n downloads -c transmission
 ```
 
 ### Common issues:
@@ -77,35 +79,51 @@ kubectl logs -f deployment/transmission-vpn -n transmission -c transmission
 If you prefer step-by-step deployment:
 
 ```bash
-# Create NFS directories
-ssh pi@192.168.88.163 "sudo mkdir -p /mnt/storage/transmission/{config,downloads}"
+# Create NFS directory for config only (downloads are now shared via shared PVC)
+ssh pi@192.168.88.163 "sudo mkdir -p /mnt/storage/transmission/config"
 ssh pi@192.168.88.163 "sudo chown -R 1000:1000 /mnt/storage/transmission"
-
-# Create namespace
-kubectl apply -f 01-namespace-and-storage.yaml
 
 # Create VPN credentials secret (replace with your credentials)
 kubectl create secret generic mullvad-credentials \
   --from-literal=WIREGUARD_PRIVATE_KEY='your-private-key' \
   --from-literal=WIREGUARD_ADDRESSES='your-address' \
   --from-literal=DNS='your-custom-dns-server' \
-  -n transmission
+  -n downloads
 
 # Deploy main application
+kubectl apply -f 01-storage.yaml
 kubectl apply -f 02-deployment.yaml
 kubectl apply -f 03-service.yaml
 ```
 
 ## Storage Structure
 
+Transmission now uses a shared NFS directory for downloads, shared with Sonarr and Radarr via the `shared-downloads-pvc` in the `downloads` namespace. This PVC is mounted at `/downloads` in the Transmission pod.
+
 ```
-/mnt/storage/transmission/
-├── config/              # Transmission configuration and torrents
-└── downloads/           # Downloaded files (shared with Sonarr/Radarr)
-    ├── complete/        # Completed downloads
-    ├── incomplete/      # In-progress downloads
-    └── watch/          # Watch folder for .torrent files
+/mnt/storage/
+├── shared/
+│   └── downloads/                 # Shared downloads directory (managed by provisioner)
+│       ├── complete/
+│       │   ├── radarr/            # Radarr movie downloads (category)
+│       │   └── tv-sonarr/         # Sonarr TV downloads (category)
+│       └── incomplete/
+├── transmission/
+│   └── config/                    # Transmission configuration and torrents
 ```
+
+**Note:**  
+You do not need to manually create `/mnt/storage/shared/downloads/`. The NFS Subdir External Provisioner and the shared PVC (`shared-downloads-pvc`) handle all subdirectory creation and management for downloads.
+
+### Accessing Downloads
+
+To check the shared downloads directory:
+```bash
+kubectl exec -n downloads deployment/transmission-vpn -c transmission -- ls -l /downloads/complete/
+```
+Or on the NFS server, look under `/mnt/storage/shared/downloads/complete/`.
+
+**You do not need to create or manage static PVCs or PVs for downloads. All apps (Sonarr, Radarr, Transmission) now use the same shared PVC (`shared-downloads-pvc`) in the `downloads` namespace, mounted at `/downloads`.**
 
 ## VPN Configuration
 
@@ -127,7 +145,7 @@ The deployment uses a custom DNS server instead of the default VPN provider DNS:
 
 To update the DNS server:
 ```bash
-kubectl patch secret mullvad-credentials -n transmission -p '{"data":{"DNS":"<base64-encoded-dns-ip>"}}'
+kubectl patch secret mullvad-credentials -n downloads -p '{"data":{"DNS":"<base64-encoded-dns-ip>"}}'
 ```
 
 ### Firewall Protection
@@ -153,15 +171,14 @@ Gluetun provides firewall protection that:
 
 ## Integration with Sonarr/Radarr
 
-The deployment includes a post-processing script that automatically moves completed downloads based on labels:
-
-- **sonarr** label → moves to `/downloads-sonarr`
-- **radarr** label → moves to `/downloads-radarr`
+Transmission, Sonarr, and Radarr all use the same dynamically provisioned NFS PVC (`shared-downloads-pvc`) for downloads. Categories in Transmission (e.g., `radarr`, `tv-sonarr`) ensure that completed downloads are placed in separate subdirectories under `/downloads/complete/`, which are visible to all apps.
 
 Configure in Sonarr/Radarr:
-1. Set download client category/label appropriately
-2. Monitor respective download directories
-3. Files are automatically moved when complete
+1. Set download client category/label appropriately (e.g., `radarr` for movies, `tv-sonarr` for TV)
+2. Transmission will automatically create subdirectories for each category under `/downloads/complete/`
+3. Sonarr and Radarr will import files from their respective subdirectories
+
+**All apps must reference `/downloads` as the download directory in their configuration, as this is the shared mount point for the shared PVC.**
 
 ## Performance Tips
 
@@ -194,7 +211,7 @@ kubectl exec -it deployment/transmission-vpn -n transmission -c transmission -- 
 ```bash
 # On master node
 ssh pi@192.168.88.163
-ls -la /mnt/storage/transmission/downloads/
+ls -la /mnt/storage/shared/downloads/complete/
 ```
 
 **Transmission not accessible:**
@@ -228,21 +245,22 @@ ls -la /mnt/storage/transmission/downloads/
 To upgrade components:
 ```bash
 # Update Gluetun
-kubectl patch deployment transmission-vpn -n transmission -p '{"spec":{"template":{"spec":{"containers":[{"name":"gluetun","image":"qmcgaw/gluetun:latest"}]}}}}''
+kubectl patch deployment transmission-vpn -n downloads -p '{"spec":{"template":{"spec":{"containers":[{"name":"gluetun","image":"qmcgaw/gluetun:latest"}]}}}}'
 
 # Update Transmission
-kubectl patch deployment transmission-vpn -n transmission -p '{"spec":{"template":{"spec":{"containers":[{"name":"transmission","image":"linuxserver/transmission:latest"}]}}}}''
+kubectl patch deployment transmission-vpn -n downloads -p '{"spec":{"template":{"spec":{"containers":[{"name":"transmission","image":"linuxserver/transmission:latest"}]}}}}'
 
 # Check rollout status
-kubectl rollout status deployment/transmission-vpn -n transmission
+kubectl rollout status deployment/transmission-vpn -n downloads
 ```
 
 ## Cleanup
 
 To remove Transmission and VPN:
 ```bash
-kubectl delete namespace transmission
-# Manually remove NFS directories if desired
+kubectl delete deployment transmission-vpn -n downloads
+kubectl delete svc transmission-vpn -n downloads
+# Manually remove NFS config directory if desired
 ssh pi@192.168.88.163 "sudo rm -rf /mnt/storage/transmission"
 ```
 
