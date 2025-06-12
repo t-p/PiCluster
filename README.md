@@ -22,7 +22,6 @@ PiCluster is a compact Kubernetes testbed built on a Turing Pi 2.5 carrier board
   - [Deployment and Management](#deployment-and-management)
   - [Security Features](#security-features)
   - [Integration Workflow](#integration-workflow)
-- [Sub-Project READMEs](#sub-project-readmes)
 
 ---
 
@@ -447,6 +446,3 @@ The applications work together in an automated content acquisition pipeline:
 This setup provides a fully automated, secure, and scalable media server solution running on Kubernetes.
 
 ---
-
-
-
