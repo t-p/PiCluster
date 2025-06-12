@@ -9,9 +9,9 @@ Radarr is a movie collection manager for Usenet and BitTorrent users that automa
 ## Prerequisites
 
 - PiCluster with K3s installed and running
-- NFS server configured on master node (node03)
-- qBittorrent deployed (for downloading)
-- Jackett deployed (for indexers)
+- NFS server configured on master node (192.168.88.163)
+- qBittorrent or Transmission deployed (for downloading)
+- Jackett or Prowlarr deployed (for indexers)
 - Jellyfin deployed (for streaming)
 - At least 1GB RAM available across worker nodes
 
@@ -20,11 +20,13 @@ Radarr is a movie collection manager for Usenet and BitTorrent users that automa
 1. **Deploy Radarr:**
    ```bash
    cd apps/radarr
-   ./deploy.sh
+   kubectl apply -f 01-storage.yaml
+   kubectl apply -f 02-deployment.yaml
+   kubectl apply -f 03-service.yaml
    ```
 
 2. **Access Radarr:**
-   - Web interface: `http://192.168.88.163:30878`
+   - Web interface: `http://192.168.88.162:30878` (or any node IP:30878)
 
 3. **Complete setup and integration with existing stack**
 
@@ -33,31 +35,49 @@ Radarr is a movie collection manager for Usenet and BitTorrent users that automa
 If you prefer manual deployment:
 
 ```bash
-# Create NFS directories
-ssh pi@node03 "sudo mkdir -p /mnt/storage/radarr/config"
-ssh pi@node03 "sudo mkdir -p /mnt/storage/jellyfin/media/movies"
-ssh pi@node03 "sudo chown -R 1000:1000 /mnt/storage/radarr"
-ssh pi@node03 "sudo chown -R 1000:1000 /mnt/storage/jellyfin/media/movies"
+# Create NFS directories (only needed for config and media, not downloads)
+ssh pi@192.168.88.163 "sudo mkdir -p /mnt/storage/radarr/config"
+ssh pi@192.168.88.163 "sudo mkdir -p /mnt/storage/jellyfin/media/movies"
+ssh pi@192.168.88.163 "sudo chown -R 1000:1000 /mnt/storage/radarr"
+ssh pi@192.168.88.163 "sudo chown -R 1000:1000 /mnt/storage/jellyfin/media/movies"
 
 # Deploy manifests
-kubectl apply -f 01-namespace-and-storage.yaml
+kubectl apply -f 01-storage.yaml
 kubectl apply -f 02-deployment.yaml
 kubectl apply -f 03-service.yaml
 ```
 
 ## Storage Structure
 
+All downloads are now stored in a shared NFS directory, used by Radarr, Sonarr, and Transmission via the `shared-downloads-pvc` in the `downloads` namespace. This PVC is mounted at `/downloads` in each pod.
+
 ```
 /mnt/storage/
+├── shared/
+│   └── downloads/             # Shared downloads directory (managed by provisioner)
+│       ├── complete/
+│       │   ├── radarr/        # Radarr movie downloads (category)
+│       │   └── tv-sonarr/     # Sonarr TV downloads (category)
+│       └── incomplete/
 ├── radarr/
-│   └── config/          # Radarr configuration and database
-├── sonarr/
-│   └── downloads/       # Shared download directory (movies + TV)
-└── jellyfin/
-    └── media/
-        ├── movies/      # Final movie destination (mounted in Radarr as /movies)
-        └── tv-shows/    # TV shows from Sonarr
+│   └── config/                # Radarr configuration and database
+├── jellyfin/
+│   └── media/
+│       ├── movies/            # Final movie destination (mounted in Radarr as /movies)
+│       └── tv-shows/          # TV shows from Sonarr
 ```
+
+**Note:**  
+You do not need to manually create `/mnt/storage/radarr/downloads/` or `/mnt/storage/sonarr/downloads/`. The NFS Subdir External Provisioner manages the shared downloads directory at `/mnt/storage/shared/downloads/` and dynamically creates subdirectories for each PVC.
+
+### Accessing Downloads
+
+To check the shared downloads directory:
+```bash
+kubectl exec -n downloads deployment/radarr -- ls -l /downloads/complete/
+```
+Or on the NFS server, look under `/mnt/storage/shared/downloads/complete/`.
+
 
 ## Configuration
 
@@ -86,6 +106,7 @@ kubectl apply -f 03-service.yaml
 1. **Settings → Media Management → Root Folders**
 2. **Add:** `/movies`
 3. **This maps to:** `/mnt/storage/jellyfin/media/movies/`
+   (Radarr's `/movies` mount in the pod)
 
 ### 4. Add Indexers from Jackett
 
@@ -141,7 +162,7 @@ Radarr moves to /movies → Jellyfin detects new movie
 - **Memory:** 256Mi request, 1Gi limit
 - **CPU:** 100m request, 500m limit
 - **Config:** 5Gi persistent storage
-- **Downloads:** 100Gi (shared with Sonarr)
+- **Downloads:** 200Gi (shared with Sonarr and Transmission via shared-downloads-pvc)
 - **Movies:** 2Ti persistent storage
 
 ## ARM64 Optimizations
@@ -149,7 +170,7 @@ Radarr moves to /movies → Jellyfin detects new movie
 - Uses LinuxServer.io Radarr image with ARM64 support
 - Conservative resource limits for Pi hardware
 - Optimized for low-power operation
-- Runs on worker nodes only
+- Runs on nodes labeled as workers (see nodeSelector in deployment)
 
 ## Performance Tips
 
@@ -172,15 +193,15 @@ Radarr moves to /movies → Jellyfin detects new movie
 
 ### Check Radarr Status:
 ```bash
-kubectl get pods -n radarr
-kubectl logs -f deployment/radarr -n radarr
-kubectl describe pod -n radarr -l app=radarr
+kubectl get pods -n downloads
+kubectl logs -f deployment/radarr -n downloads
+kubectl describe pod -n downloads -l app=radarr
 ```
 
 ### Common Issues:
 
 **Pod not starting:**
-- Check if NFS directories exist with correct permissions
+- Check if NFS directories exist with correct permissions (for config and media)
 - Verify NFS server is running on master node
 - Check resource availability on worker nodes
 
@@ -202,13 +223,13 @@ kubectl describe pod -n radarr -l app=radarr
 ### Access Storage Directly:
 ```bash
 # Check movies directory
-ssh pi@node03 "ls -la /mnt/storage/jellyfin/media/movies/"
+ssh pi@192.168.88.163 "ls -la /mnt/storage/jellyfin/media/movies/"
 
-# Check downloads directory
-ssh pi@node03 "ls -la /mnt/storage/sonarr/downloads/"
+# Check shared downloads directory
+ssh pi@192.168.88.163 "ls -la /mnt/storage/shared/downloads/complete/radarr/"
 
 # Check Radarr config
-ssh pi@node03 "ls -la /mnt/storage/radarr/config/"
+ssh pi@192.168.88.163 "ls -la /mnt/storage/radarr/config/"
 ```
 
 ## Movie Naming Convention
@@ -261,8 +282,8 @@ kubectl top pods -n radarr
 
 To upgrade Radarr:
 ```bash
-kubectl set image deployment/radarr radarr=linuxserver/radarr:latest -n radarr
-kubectl rollout status deployment/radarr -n radarr
+kubectl set image deployment/radarr radarr=linuxserver/radarr:latest -n downloads
+kubectl rollout status deployment/radarr -n downloads
 ```
 
 ## Scaling Considerations
@@ -277,9 +298,10 @@ This deployment uses a single replica for data consistency. For high availabilit
 
 To remove Radarr:
 ```bash
-kubectl delete namespace radarr
-# Manually remove NFS directories if desired
-ssh pi@node03 "sudo rm -rf /mnt/storage/radarr"
+kubectl delete deployment radarr -n downloads
+kubectl delete svc radarr radarr-nodeport -n downloads
+# Manually remove NFS directories if desired (config only; downloads are shared)
+ssh pi@192.168.88.163 "sudo rm -rf /mnt/storage/radarr"
 ```
 
 ## Adding Movies

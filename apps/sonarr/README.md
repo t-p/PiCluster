@@ -1,6 +1,6 @@
 # Sonarr on PiCluster
 
-This directory contains Kubernetes manifests to deploy Sonarr (TV show PVR) along with qBittorrent (download client) on your PiCluster K3s setup.
+This directory contains Kubernetes manifests to deploy Sonarr (TV show PVR) on your PiCluster K3s setup, using a shared NFS PVC for downloads (integrated with Radarr and Transmission).
 
 ## Overview
 
@@ -20,15 +20,16 @@ Sonarr is a PVR for Usenet and BitTorrent users that automatically searches, dow
 
 ## Quick Start
 
-1. **Deploy both Sonarr and qBittorrent:**
+1. **Deploy Sonarr:**
    ```bash
    cd apps/sonarr
-   ./deploy.sh
+   kubectl apply -f 01-storage.yaml
+   kubectl apply -f 02-deployment.yaml
+   kubectl apply -f 03-service.yaml
    ```
 
-2. **Access the applications:**
-   - Sonarr: `http://192.168.88.163:30989`
-   - qBittorrent: `http://192.168.88.163:30080`
+2. **Access Sonarr:**
+   - Web interface: `http://192.168.88.163:30989`
 
 3. **Complete initial setup (see Configuration section)**
 
@@ -37,35 +38,45 @@ Sonarr is a PVR for Usenet and BitTorrent users that automatically searches, dow
 If you prefer manual deployment:
 
 ```bash
-# Create NFS directories
-ssh pi@node03 "sudo mkdir -p /mnt/storage/sonarr/{config,downloads}"
-ssh pi@node03 "sudo mkdir -p /mnt/storage/qbittorrent/config"
-ssh pi@node03 "sudo chown -R 1000:1000 /mnt/storage/{sonarr,qbittorrent}"
+# Create NFS directories (only needed for config, not downloads)
+ssh pi@node03 "sudo mkdir -p /mnt/storage/sonarr/config"
+ssh pi@node03 "sudo chown -R 1000:1000 /mnt/storage/sonarr"
 
-# Deploy Sonarr
-kubectl apply -f 01-namespace-and-storage.yaml
+# Deploy manifests
+kubectl apply -f 01-storage.yaml
 kubectl apply -f 02-deployment.yaml
 kubectl apply -f 03-service.yaml
-
-# Deploy qBittorrent
-kubectl apply -f ../qbittorrent/01-namespace-and-storage.yaml
-kubectl apply -f ../qbittorrent/02-deployment.yaml
-kubectl apply -f ../qbittorrent/03-service.yaml
 ```
 
 ## Storage Structure
 
+With the NFS Subdir External Provisioner, all downloads are stored in a shared directory on your NFS server. Sonarr, Radarr, and Transmission all use the same PVC (`shared-downloads-pvc` in the `downloads` namespace), which is mounted at `/downloads` in each pod.
+
 ```
 /mnt/storage/
+├── shared/
+│   └── downloads/                 # Shared downloads directory (managed by provisioner)
+│       ├── complete/
+│       │   ├── tv-sonarr/         # Sonarr TV downloads (category)
+│       │   └── radarr/            # Radarr movie downloads (category)
+│       └── incomplete/
 ├── sonarr/
-│   ├── config/          # Sonarr configuration and database
-│   └── downloads/       # Shared download directory
-├── qbittorrent/
-│   └── config/          # qBittorrent configuration
-└── jellyfin/
-    └── media/
-        └── tv-shows/    # Final TV show destination (mounted in Sonarr as /tv)
+│   └── config/                    # Sonarr configuration and database
+├── jellyfin/
+│   └── media/
+│       └── tv-shows/              # Final TV show destination (mounted in Sonarr as /tv)
 ```
+
+**Note:**  
+You do not need to manually create `/mnt/storage/sonarr/downloads/` or `/mnt/storage/shared/downloads/`. The provisioner manages the shared downloads directory automatically.
+
+### Accessing Downloads
+
+To check the shared downloads directory:
+```bash
+kubectl exec -n downloads deployment/sonarr -- ls -l /downloads/complete/
+```
+Or on the NFS server, look under `/mnt/storage/shared/downloads/complete/`.
 
 ## Configuration
 
@@ -77,7 +88,7 @@ kubectl apply -f ../qbittorrent/03-service.yaml
    - Password: `adminadmin`
 3. **Change password immediately!**
 4. **Configure download paths:**
-   - Default Save Path: `/downloads`
+   - Default Save Path: `/downloads` (shared NFS PVC)
    - Keep default category settings
 5. **Configure connection settings:**
    - Port: `6881` (already configured)
@@ -89,7 +100,7 @@ kubectl apply -f ../qbittorrent/03-service.yaml
 2. **Complete setup wizard**
 3. **Add Download Client:**
    - Settings → Download Clients → Add qBittorrent
-   - Host: `qbittorrent.qbittorrent.svc.cluster.local`
+   - Host: `qbittorrent.qbittorrent.svc.cluster.local` (or the correct service name in your cluster)
    - Port: `8080`
    - Username: `admin`
    - Password: (your new password)
@@ -97,7 +108,7 @@ kubectl apply -f ../qbittorrent/03-service.yaml
 
 4. **Configure Root Folders:**
    - Settings → Media Management → Root Folders
-   - Add: `/tv` (this maps to your Jellyfin TV shows folder)
+   - Add: `/tv` (this maps to your Jellyfin TV shows folder, which is `/mnt/storage/jellyfin/media/tv-shows/`)
 
 5. **Add Indexers:**
    - Settings → Indexers
@@ -115,16 +126,14 @@ The setup automatically integrates with your existing Jellyfin:
 - Downloaded TV shows go to `/mnt/storage/jellyfin/media/tv-shows/`
 - Jellyfin will automatically detect new episodes
 - Use consistent naming conventions for best results
+- All downloads are visible to Sonarr, Radarr, and Transmission instantly via the shared PVC
 
 ## Resource Configuration
 
 **Sonarr:**
 - Memory: 256Mi request, 1Gi limit
 - CPU: 100m request, 500m limit
-
-**qBittorrent:**
-- Memory: 256Mi request, 1Gi limit  
-- CPU: 100m request, 500m limit
+- Downloads: Shared NFS PVC (`shared-downloads-pvc`)
 
 ## ARM64 Optimizations
 
@@ -141,7 +150,7 @@ The setup automatically integrates with your existing Jellyfin:
    - Consider download scheduling during off-peak hours
 
 2. **Storage Optimization:**
-   - Monitor available space on NFS share
+   - Monitor available space on NFS share (shared by Sonarr, Radarr, Transmission)
    - Configure automatic removal of completed downloads
    - Use quality profiles appropriate for Pi playback
 
@@ -154,11 +163,9 @@ The setup automatically integrates with your existing Jellyfin:
 
 ### Check pod status:
 ```bash
-kubectl get pods -n sonarr
-kubectl get pods -n qbittorrent
-kubectl describe pod <pod-name> -n <namespace>
-kubectl logs -f deployment/sonarr -n sonarr
-kubectl logs -f deployment/qbittorrent -n qbittorrent
+kubectl get pods -n downloads
+kubectl describe pod <pod-name> -n downloads
+kubectl logs -f deployment/sonarr -n downloads
 ```
 
 ### Common issues:
@@ -186,8 +193,12 @@ kubectl logs -f deployment/qbittorrent -n qbittorrent
 ```bash
 # On master node
 ssh pi@node03
-ls -la /mnt/storage/sonarr/downloads/
+ls -la /mnt/storage/shared/downloads/complete/
 ls -la /mnt/storage/jellyfin/media/tv-shows/
+```
+
+**Tip:**  
+All downloads are now in `/mnt/storage/shared/downloads/` (shared by Sonarr, Radarr, Transmission).
 ```
 
 ## Security Considerations
@@ -232,7 +243,7 @@ kubectl top pods -n qbittorrent
 
 This deployment uses single replicas for data consistency. For high availability:
 
-1. Use ReadWriteMany storage for all volumes
+1. Use ReadWriteMany storage for all volumes (already used for downloads via shared PVC)
 2. Configure external databases
 3. Implement proper session management
 4. Consider active/passive failover
@@ -241,20 +252,17 @@ This deployment uses single replicas for data consistency. For high availability
 
 To upgrade applications:
 ```bash
-kubectl set image deployment/sonarr sonarr=linuxserver/sonarr:latest -n sonarr
-kubectl set image deployment/qbittorrent qbittorrent=linuxserver/qbittorrent:latest -n qbittorrent
-kubectl rollout status deployment/sonarr -n sonarr
-kubectl rollout status deployment/qbittorrent -n qbittorrent
+kubectl set image deployment/sonarr sonarr=linuxserver/sonarr:latest -n downloads
+kubectl rollout status deployment/sonarr -n downloads
 ```
 
 ## Cleanup
 
 To remove everything:
 ```bash
-kubectl delete namespace sonarr
-kubectl delete namespace qbittorrent
-# Manually remove NFS directories if desired
-ssh pi@node03 "sudo rm -rf /mnt/storage/{sonarr,qbittorrent}"
+kubectl delete deployment sonarr -n downloads
+# Manually remove NFS config directory if desired
+ssh pi@node03 "sudo rm -rf /mnt/storage/sonarr"
 ```
 
 ## Useful Links
