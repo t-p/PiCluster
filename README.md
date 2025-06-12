@@ -1,12 +1,14 @@
 # PiCluster
 
-PiCluster is a compact Kubernetes testbed built on a Turing Pi 2.5 carrier board with 4x Raspberry Pi Compute Module 4 nodes, running a complete media server stack.
+PiCluster is a fully automated, self-hosted Kubernetes media server stack designed for Raspberry Pi clusters. Built on a Turing Pi 2.5 carrier board with four Raspberry Pi Compute Module 4 nodes.
 
-<p align="center">
-  <img src="images/turing-pi-board.jpg" alt="Turing Pi Board" width="400"/>
-</p>
+This project provides manifests and configuration for running Jellyfin, Sonarr, Radarr, Transmission (with VPN), Jackett, and a modern dashboard—all orchestrated by K3s and backed by shared NFS storage. PiCluster is ideal for homelab enthusiasts, edge computing, and anyone seeking a robust, private alternative to cloud-based media solutions.
 
 ---
+
+<p align="center">
+  <img src="images/turing-pi-board.jpg" alt="Turing Pi Board" width="450"/>
+</p>
 
 ## 📑 Index
 
