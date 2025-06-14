@@ -69,3 +69,17 @@ services:
         tag: "admin"
         url: "https://192.168.88.162:30000"
         target: "_blank"
+
+      - name: "Grafana"
+        icon: "fas fa-chart-line"
+        subtitle: "Monitoring dashboards"
+        tag: "monitoring"
+        url: "http://192.168.88.162:30300"
+        target: "_blank"
+
+      - name: "Prometheus"
+        icon: "fas fa-database"
+        subtitle: "Metrics collection"
+        tag: "monitoring"
+        url: "http://192.168.88.162:30900"
+        target: "_blank"

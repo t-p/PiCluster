@@ -208,7 +208,10 @@ Create the directory structure for media server data:
 ```bash
 sudo mkdir -p /mnt/storage/{homer,jellyfin,transmission,sonarr,radarr,jackett}/{config,data}
 sudo mkdir -p /mnt/storage/{downloads,media/{movies,tv,music}}
+sudo mkdir -p /mnt/storage/monitoring/{prometheus,grafana}
 sudo chown -R 1000:1000 /mnt/storage
+sudo chown 65534:65534 /mnt/storage/monitoring/prometheus
+sudo chown 472:472 /mnt/storage/monitoring/grafana
 sudo chmod -R 755 /mnt/storage
 ```
 
@@ -273,6 +276,8 @@ This K3s cluster hosts a complete media server stack with automated content mana
 | **Radarr** | Movie Management | `http://192.168.88.163:7878` | LoadBalancer | [Radarr README](apps/radarr/README.md) |
 | **Jackett** | Torrent Indexer Proxy | `http://192.168.88.163:9117` | LoadBalancer | |
 | **K8s Dashboard** | Kubernetes Management UI | `http://192.168.88.163:30443` | NodePort | [Kubernetes Dashboard README](apps/kubernetes-dashboard/README.md) |
+| **Grafana** | Monitoring Dashboards | `http://192.168.88.163:30300` | NodePort | [Monitoring README](apps/monitoring/README.md) |
+| **Prometheus** | Metrics Collection | `http://192.168.88.163:30900` | NodePort | [Monitoring README](apps/monitoring/README.md) |
 
 ### Detailed Application Information
 
@@ -359,6 +364,28 @@ This K3s cluster hosts a complete media server stack with automated content mana
   - Service and ingress management
 - **More info**: [apps/kubernetes-dashboard/README.md](apps/kubernetes-dashboard/README.md)
 
+#### 📊 Monitoring Stack
+- **Namespace**: `monitoring`
+- **Description**: Complete monitoring solution for cluster and application metrics
+- **Components**:
+  - **Prometheus**: Time-series database collecting metrics from all cluster nodes and applications
+  - **Grafana**: Visualization platform for creating dashboards and alerting
+  - **Node Exporter**: System metrics collector running on all nodes (CPU, memory, disk, network)
+  - **kube-state-metrics**: Kubernetes cluster state metrics
+- **Features**:
+  - Real-time cluster and application monitoring
+  - Persistent storage for historical data (15-day retention)
+  - Auto-discovery of Kubernetes services
+  - Pre-configured Prometheus datasource in Grafana
+  - Clean dashboard installation for custom monitoring setup
+- **Storage**:
+  - Prometheus data: `/mnt/storage/monitoring/prometheus` (20Gi)
+  - Grafana config: `/mnt/storage/monitoring/grafana` (1Gi)
+- **Access**:
+  - Grafana: `http://192.168.88.163:30300`
+  - Prometheus: `http://192.168.88.163:30900`
+- **More info**: [apps/monitoring/README.md](apps/monitoring/README.md)
+
 ### Storage Architecture
 
 The media server uses NFS-based persistent storage with the following structure:
@@ -371,6 +398,9 @@ The media server uses NFS-based persistent storage with the following structure:
 ├── sonarr/config/         # Sonarr application data
 ├── radarr/config/         # Radarr application data
 ├── jackett/config/        # Jackett indexer configurations
+├── monitoring/            # Monitoring stack persistent storage
+│   ├── prometheus/        # Prometheus metrics data (20Gi, 15-day retention)
+│   └── grafana/           # Grafana dashboards and configuration (1Gi)
 ├── shared/downloads/      # Shared download directory (Transmission, Sonarr, Radarr)
 └── jellyfin/media/
     ├── movies/            # Organized movie library (Radarr → Jellyfin)
@@ -401,6 +431,9 @@ kubectl apply -f apps/transmission/
 kubectl apply -f apps/sonarr/
 kubectl apply -f apps/radarr/
 kubectl apply -f apps/homer/
+
+# Deploy monitoring stack
+kubectl apply -f apps/monitoring/
 kubectl apply -f apps/kubernetes-dashboard/
 ```
 
