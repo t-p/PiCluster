@@ -70,6 +70,13 @@ services:
         url: "https://192.168.88.162:30000"
         target: "_blank"
 
+      - name: ArgoCD
+        icon: " fas fa-code-branch"
+        subtitle: GitOps for Kubernetes
+        tag: "admin"
+        url: http://192.168.88.162:30080
+        target: "_blank"
+
       - name: "Grafana"
         icon: "fas fa-chart-line"
         subtitle: "Monitoring dashboards"

@@ -1,0 +1,56 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: argocd-server-ingress
+  namespace: argocd
+  annotations:
+    kubernetes.io/ingress.class: "traefik"
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    # ArgoCD server requires gRPC passthrough
+    traefik.ingress.kubernetes.io/router.middlewares: argocd-server-middleware@kubernetescrd
+spec:
+  rules:
+    - host: argocd.cluster.pfeiffer.pw
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: argocd-server
+                port:
+                  number: 80
+  tls:
+    - hosts:
+        - argocd.cluster.pfeiffer.pw
+      secretName: argocd-server-tls
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: argocd-server-middleware
+  namespace: argocd
+spec:
+  headers:
+    customRequestHeaders:
+      # Required for ArgoCD server to work properly behind proxy
+      X-Forwarded-Proto: "https"
+      X-Forwarded-For: ""
+    customResponseHeaders:
+      # Security headers
+      X-Frame-Options: "DENY"
+      X-Content-Type-Options: "nosniff"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-cmd-params-cm
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-cmd-params-cm
+    app.kubernetes.io/part-of: argocd
+data:
+  # Enable insecure mode for ArgoCD server (since we're terminating TLS at Traefik)
+  server.insecure: "true"
