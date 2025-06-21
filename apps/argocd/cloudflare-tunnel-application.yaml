@@ -1,0 +1,37 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cloudflare-tunnel
+  namespace: argocd
+  labels:
+    app: cloudflare-tunnel
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/t-p/PiCluster
+    targetRevision: main
+    path: apps/cloudflare-tunnel
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cloudflare-tunnel
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
+  info:
+    - name: "Description"
+      value: "Cloudflare Tunnel for secure remote access"
+    - name: "Documentation"
+      value: "https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/"
