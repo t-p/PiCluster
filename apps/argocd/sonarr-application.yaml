@@ -1,0 +1,37 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sonarr
+  namespace: argocd
+  labels:
+    app: sonarr
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/t-p/PiCluster
+    targetRevision: main
+    path: apps/sonarr
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: sonarr
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
+  info:
+    - name: "Description"
+      value: "Sonarr TV show automation and management"
+    - name: "Documentation"
+      value: "https://wiki.servarr.com/sonarr"
