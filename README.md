@@ -276,6 +276,7 @@ This K3s cluster hosts a complete media server stack with automated content mana
 | **Radarr** | Movie Management | `http://192.168.88.163:7878` | LoadBalancer | [Radarr README](apps/radarr/README.md) |
 | **Jackett** | Torrent Indexer Proxy | `http://192.168.88.163:9117` | LoadBalancer | |
 | **K8s Dashboard** | Kubernetes Management UI | `http://192.168.88.163:30443` | NodePort | [Kubernetes Dashboard README](apps/kubernetes-dashboard/README.md) |
+| **Argo CD** | GitOps Kubernetes Management | `http://192.168.88.163:30080` | NodePort | [Argo CD Docs](https://argo-cd.readthedocs.io/) |
 | **Grafana** | Monitoring Dashboards | `http://192.168.88.163:30300` | NodePort | [Monitoring README](apps/monitoring/README.md) |
 | **Prometheus** | Metrics Collection | `http://192.168.88.163:30900` | NodePort | [Monitoring README](apps/monitoring/README.md) |
 
@@ -363,6 +364,17 @@ This K3s cluster hosts a complete media server stack with automated content mana
   - Deployment scaling and updates
   - Service and ingress management
 - **More info**: [apps/kubernetes-dashboard/README.md](apps/kubernetes-dashboard/README.md)
+
+#### 🚀 Argo CD - GitOps Kubernetes Management
+- **Namespace**: `argocd`
+- **Description**: Declarative GitOps continuous delivery tool for Kubernetes. Manages application deployments via Git.
+- **Features**:
+  - Visual dashboard for application sync/status
+  - Automated sync and self-healing
+  - Rollbacks, history, and audit trails
+  - SSO and RBAC support
+- **Access**: [http://192.168.88.163:30080](http://192.168.88.163:30080)
+- **Docs**: [Argo CD Documentation](https://argo-cd.readthedocs.io/)
 
 #### 📊 Monitoring Stack
 - **Namespace**: `monitoring`
