@@ -14,7 +14,7 @@ spec:
     path: apps/radarr
   destination:
     server: https://kubernetes.default.svc
-    namespace: radarr
+    namespace: downloads
   syncPolicy:
     automated:
       prune: true
