@@ -1,0 +1,37 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: transmission
+  namespace: argocd
+  labels:
+    app: transmission
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/t-p/PiCluster
+    targetRevision: main
+    path: apps/transmission
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: downloads
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
+  info:
+    - name: "Description"
+      value: "Transmission BitTorrent client with VPN, managed by ArgoCD"
+    - name: "Documentation"
+      value: "https://github.com/qdm12/gluetun"

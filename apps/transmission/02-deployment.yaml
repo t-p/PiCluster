@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: transmission-vpn
-  namespace: transmission
+  namespace: downloads
   labels:
     app: transmission-vpn
 spec:
@@ -131,7 +131,7 @@ spec:
             claimName: transmission-config-pvc
         - name: transmission-downloads
           persistentVolumeClaim:
-            claimName: transmission-downloads-pvc
+            claimName: shared-downloads-pvc
 
       nodeSelector:
         node-role.kubernetes.io/worker: worker
