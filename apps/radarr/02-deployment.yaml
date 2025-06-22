@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: radarr
-  namespace: radarr
+  namespace: downloads
   labels:
     app: radarr
 spec:
@@ -18,52 +18,51 @@ spec:
       securityContext:
         fsGroup: 1000
       containers:
-      - name: radarr
-        image: linuxserver/radarr:latest
-        ports:
-        - containerPort: 7878
-          name: http
-        env:
-        - name: PUID
-          value: "1000"
-        - name: PGID
-          value: "1000"
-        - name: TZ
-          value: "UTC"
-        - name: UMASK
-          value: "022"
-        resources:
-          requests:
-            memory: "256Mi"
-            cpu: "100m"
-          limits:
-            memory: "1Gi"
-            cpu: "500m"
-        volumeMounts:
-        - name: radarr-config
-          mountPath: /config
-        - name: radarr-downloads
-          mountPath: /downloads
-        - name: radarr-movies
-          mountPath: /movies
-        securityContext:
-          runAsUser: 1000
-          runAsGroup: 1000
+        - name: radarr
+          image: linuxserver/radarr:latest
+          ports:
+            - containerPort: 7878
+              name: http
+          env:
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "1000"
+            - name: TZ
+              value: "UTC"
+            - name: UMASK
+              value: "022"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+          volumeMounts:
+            - name: radarr-config
+              mountPath: /config
+            - name: radarr-downloads
+              mountPath: /downloads
+            - name: radarr-movies
+              mountPath: /movies
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
       volumes:
-      - name: radarr-config
-        persistentVolumeClaim:
-          claimName: radarr-config-pvc
-      - name: radarr-downloads
-        nfs:
-          server: 192.168.88.163
-          path: /mnt/storage/shared/downloads
-      - name: radarr-movies
-        persistentVolumeClaim:
-          claimName: radarr-movies-pvc
+        - name: radarr-config
+          persistentVolumeClaim:
+            claimName: radarr-config-pvc
+        - name: radarr-downloads
+          persistentVolumeClaim:
+            claimName: shared-downloads-pvc
+        - name: radarr-movies
+          persistentVolumeClaim:
+            claimName: radarr-movies-pvc
       nodeSelector:
         node-role.kubernetes.io/worker: worker
       tolerations:
-      - key: "arm"
-        operator: "Equal"
-        value: "true"
-        effect: "NoSchedule"
+        - key: "arm"
+          operator: "Equal"
+          value: "true"
+          effect: "NoSchedule"

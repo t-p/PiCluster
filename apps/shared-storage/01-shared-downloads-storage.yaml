@@ -29,4 +29,3 @@ spec:
   resources:
     requests:
       storage: 200Gi
-  volumeName: shared-downloads-pv
