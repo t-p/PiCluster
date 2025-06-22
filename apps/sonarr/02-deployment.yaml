@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: sonarr
-  namespace: sonarr
+  namespace: downloads
   labels:
     app: sonarr
 spec:
@@ -18,63 +18,63 @@ spec:
       securityContext:
         fsGroup: 1000
       containers:
-      - name: sonarr
-        image: linuxserver/sonarr:latest
-        ports:
-        - containerPort: 8989
-          name: http
-        env:
-        - name: PUID
-          value: "1000"
-        - name: PGID
-          value: "1000"
-        - name: TZ
-          value: "UTC"
-        - name: UMASK
-          value: "022"
-        resources:
-          requests:
-            memory: "256Mi"
-            cpu: "100m"
-          limits:
-            memory: "1Gi"
-            cpu: "500m"
-        volumeMounts:
-        - name: sonarr-config
-          mountPath: /config
-        - name: sonarr-downloads
-          mountPath: /downloads
-        - name: sonarr-tv
-          mountPath: /tv
-        securityContext:
-          runAsUser: 1000
-          runAsGroup: 1000
-        livenessProbe:
-          httpGet:
-            path: /
-            port: 8989
-          initialDelaySeconds: 60
-          periodSeconds: 30
-        readinessProbe:
-          httpGet:
-            path: /
-            port: 8989
-          initialDelaySeconds: 30
-          periodSeconds: 10
+        - name: sonarr
+          image: linuxserver/sonarr:latest
+          ports:
+            - containerPort: 8989
+              name: http
+          env:
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "1000"
+            - name: TZ
+              value: "UTC"
+            - name: UMASK
+              value: "022"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+          volumeMounts:
+            - name: sonarr-config
+              mountPath: /config
+            - name: sonarr-downloads
+              mountPath: /downloads
+            - name: sonarr-tv
+              mountPath: /tv
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8989
+            initialDelaySeconds: 60
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8989
+            initialDelaySeconds: 30
+            periodSeconds: 10
       volumes:
-      - name: sonarr-config
-        persistentVolumeClaim:
-          claimName: sonarr-config-pvc
-      - name: sonarr-downloads
-        persistentVolumeClaim:
-          claimName: shared-downloads-pvc
-      - name: sonarr-tv
-        persistentVolumeClaim:
-          claimName: sonarr-tv-pvc
+        - name: sonarr-config
+          persistentVolumeClaim:
+            claimName: sonarr-config-pvc
+        - name: sonarr-downloads
+          persistentVolumeClaim:
+            claimName: shared-downloads-pvc
+        - name: sonarr-tv
+          persistentVolumeClaim:
+            claimName: sonarr-tv-pvc
       nodeSelector:
         node-role.kubernetes.io/worker: worker
       tolerations:
-      - key: "arm"
-        operator: "Equal"
-        value: "true"
-        effect: "NoSchedule"
+        - key: "arm"
+          operator: "Equal"
+          value: "true"
+          effect: "NoSchedule"
