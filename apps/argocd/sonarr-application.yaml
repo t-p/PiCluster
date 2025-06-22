@@ -14,7 +14,7 @@ spec:
     path: apps/sonarr
   destination:
     server: https://kubernetes.default.svc
-    namespace: sonarr
+    namespace: downloads
   syncPolicy:
     automated:
       prune: true
