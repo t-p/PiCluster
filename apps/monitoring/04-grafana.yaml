@@ -15,22 +15,6 @@ data:
         editable: true
 ---
 apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: grafana-config-pv
-  namespace: monitoring
-spec:
-  capacity:
-    storage: 1Gi
-  accessModes:
-    - ReadWriteOnce
-  persistentVolumeReclaimPolicy: Retain
-  storageClassName: nfs
-  nfs:
-    server: 192.168.88.163
-    path: /mnt/storage/monitoring/grafana
----
-apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: grafana-config-pvc
@@ -42,7 +26,6 @@ spec:
   resources:
     requests:
       storage: 1Gi
-  volumeName: grafana-config-pv
 ---
 apiVersion: apps/v1
 kind: Deployment

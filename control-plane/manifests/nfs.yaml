@@ -11,3 +11,6 @@ spec:
     nfs.server: 192.168.88.163
     nfs.path: /mnt/storage
     storageClass.name: nfs
+  valuesContent: |
+    nodeSelector:
+      kubernetes.io/hostname: node01

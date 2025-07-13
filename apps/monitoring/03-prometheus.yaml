@@ -70,22 +70,6 @@ data:
             target_label: kubernetes_pod_name
 ---
 apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: prometheus-data-pv
-  namespace: monitoring
-spec:
-  capacity:
-    storage: 20Gi
-  accessModes:
-    - ReadWriteOnce
-  persistentVolumeReclaimPolicy: Retain
-  storageClassName: nfs
-  nfs:
-    server: 192.168.88.163
-    path: /mnt/storage/monitoring/prometheus
----
-apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: prometheus-data-pvc
@@ -97,7 +81,6 @@ spec:
   resources:
     requests:
       storage: 20Gi
-  volumeName: prometheus-data-pv
 ---
 apiVersion: apps/v1
 kind: Deployment

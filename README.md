@@ -129,7 +129,7 @@ hostnamectl set-hostname node04
 Update package lists and install essential tools:
 ```bash
 sudo apt update && sudo apt upgrade -y
-sudo apt install -y curl wget vim htop
+sudo apt install -y curl wget vim htop iptables iptables-persistent
 ```
 ## Kubernetes Installation (K3s)
 
