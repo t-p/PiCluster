@@ -49,6 +49,18 @@ spec:
           securityContext:
             runAsUser: 1000
             runAsGroup: 1000
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 7878
+            initialDelaySeconds: 60
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 7878
+            initialDelaySeconds: 30
+            periodSeconds: 10
       volumes:
         - name: radarr-config
           persistentVolumeClaim:
