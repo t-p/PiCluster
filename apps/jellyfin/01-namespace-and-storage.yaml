@@ -19,7 +19,7 @@ spec:
   storageClassName: nfs
   nfs:
     server: 192.168.88.163
-    path: /mnt/storage/jellyfin/media
+    path: /mnt/storage/media
 ---
 apiVersion: v1
 kind: PersistentVolume
@@ -36,6 +36,21 @@ spec:
   nfs:
     server: 192.168.88.163
     path: /mnt/storage/jellyfin/config
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: jellyfin-nvme-pv
+  namespace: jellyfin
+spec:
+  capacity:
+    storage: 100Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: nvme-local
+  hostPath:
+    path: /home/pi/media/movies
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -64,3 +79,17 @@ spec:
     requests:
       storage: 10Gi
   volumeName: jellyfin-config-pv
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jellyfin-nvme-pvc
+  namespace: jellyfin
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: nvme-local
+  resources:
+    requests:
+      storage: 100Gi
+  volumeName: jellyfin-nvme-pv

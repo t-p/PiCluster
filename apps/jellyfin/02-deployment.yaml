@@ -17,78 +17,83 @@ spec:
     spec:
       securityContext:
         fsGroup: 1000
-        supplementalGroups: [44, 109]  # video and render groups
+        supplementalGroups: [44, 109] # video and render groups
       containers:
-      - name: jellyfin
-        image: jellyfin/jellyfin:latest
-        ports:
-        - containerPort: 8096
-          name: http
-        - containerPort: 8920
-          name: https
-        - containerPort: 1900
-          name: dlna
-          protocol: UDP
-        - containerPort: 7359
-          name: discovery
-          protocol: UDP
-        env:
-        - name: JELLYFIN_PublishedServerUrl
-          value: "http://192.168.88.162:8096"
-        - name: TZ
-          value: "UTC"
-        resources:
-          requests:
-            memory: "1Gi"
-            cpu: "500m"
-          limits:
-            memory: "4Gi"
-            cpu: "2000m"
-        volumeMounts:
-        - name: jellyfin-config
-          mountPath: /config
-        - name: jellyfin-cache
-          mountPath: /cache
-        - name: jellyfin-media
-          mountPath: /media
-          readOnly: true
-        - name: gpu-device
-          mountPath: /dev/dri
-          readOnly: false
-        securityContext:
-          runAsUser: 1000
-          runAsGroup: 1000
-          privileged: false
-          allowPrivilegeEscalation: false
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 8096
-          initialDelaySeconds: 60
-          periodSeconds: 30
-        readinessProbe:
-          httpGet:
-            path: /health
-            port: 8096
-          initialDelaySeconds: 30
-          periodSeconds: 10
+        - name: jellyfin
+          image: jellyfin/jellyfin:latest
+          ports:
+            - containerPort: 8096
+              name: http
+            - containerPort: 8920
+              name: https
+            - containerPort: 1900
+              name: dlna
+              protocol: UDP
+            - containerPort: 7359
+              name: discovery
+              protocol: UDP
+          env:
+            - name: JELLYFIN_PublishedServerUrl
+              value: "http://192.168.88.162:8096"
+            - name: TZ
+              value: "UTC"
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "500m"
+            limits:
+              memory: "4Gi"
+              cpu: "2000m"
+          volumeMounts:
+            - name: jellyfin-config
+              mountPath: /config
+            - name: jellyfin-cache
+              mountPath: /cache
+            - name: jellyfin-media
+              mountPath: /media
+              readOnly: true
+            - name: gpu-device
+              mountPath: /dev/dri
+              readOnly: false
+            - name: nvme-media
+              mountPath: /nvme-media
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            privileged: false
+            allowPrivilegeEscalation: false
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8096
+            initialDelaySeconds: 60
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8096
+            initialDelaySeconds: 30
+            periodSeconds: 10
       volumes:
-      - name: jellyfin-config
-        persistentVolumeClaim:
-          claimName: jellyfin-config-pvc
-      - name: jellyfin-cache
-        emptyDir:
-          sizeLimit: 5Gi
-      - name: jellyfin-media
-        persistentVolumeClaim:
-          claimName: jellyfin-media-pvc
-      - name: gpu-device
-        hostPath:
-          path: /dev/dri
+        - name: jellyfin-config
+          persistentVolumeClaim:
+            claimName: jellyfin-config-pvc
+        - name: jellyfin-cache
+          emptyDir:
+            sizeLimit: 5Gi
+        - name: jellyfin-media
+          persistentVolumeClaim:
+            claimName: jellyfin-media-pvc
+        - name: gpu-device
+          hostPath:
+            path: /dev/dri
+        - name: nvme-media
+          persistentVolumeClaim:
+            claimName: jellyfin-nvme-pvc
       nodeSelector:
-        node-role.kubernetes.io/worker: worker
+        kubernetes.io/hostname: node05
       tolerations:
-      - key: "arm"
-        operator: "Equal"
-        value: "true"
-        effect: "NoSchedule"
+        - key: "arm"
+          operator: "Equal"
+          value: "true"
+          effect: "NoSchedule"
