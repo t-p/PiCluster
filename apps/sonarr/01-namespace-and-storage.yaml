@@ -28,7 +28,7 @@ spec:
   storageClassName: nfs
   nfs:
     server: 192.168.88.163
-    path: /mnt/storage/jellyfin/media/tv-shows
+    path: /mnt/storage/media/tv
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
