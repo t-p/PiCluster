@@ -82,7 +82,7 @@ spec:
             periodSeconds: 30
             timeoutSeconds: 5
         - name: transmission
-          image: linuxserver/transmission:latest
+          image: lscr.io/linuxserver/transmission:latest
           env:
             - name: PUID
               value: "1000"
