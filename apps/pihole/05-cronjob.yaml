@@ -1,0 +1,120 @@
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: pihole-gravity-update
+  namespace: dns
+  labels:
+    app: pihole
+    component: gravity-update
+spec:
+  schedule: "0 2 * * *"
+  concurrencyPolicy: Allow
+  suspend: false
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: pihole
+            component: gravity-update
+        spec:
+          containers:
+            - name: gravity-update
+              image: pihole/pihole:latest
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  echo "Starting Pi-hole blocklist update..."
+
+                  # Update Pi-hole blocklists (gravity database)
+                  pihole -g
+
+                  echo "Blocklist update completed"
+              volumeMounts:
+                - name: pihole-config-storage
+                  mountPath: /etc/pihole
+                  subPath: pihole
+                - name: pihole-config-storage
+                  mountPath: /var/log/pihole
+                  subPath: logs
+          restartPolicy: OnFailure
+          volumes:
+            - name: pihole-config-storage
+              persistentVolumeClaim:
+                claimName: pihole-config-pvc
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: pihole-log-cleanup
+  namespace: dns
+  labels:
+    app: pihole
+    component: log-cleanup
+spec:
+  schedule: "0 3 * * *"  # Run at 3 AM daily (1 hour after gravity update)
+  concurrencyPolicy: Forbid
+  suspend: false
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: pihole
+            component: log-cleanup
+        spec:
+          containers:
+            - name: log-maintenance
+              image: busybox:1.35
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  echo "Starting Pi-hole log maintenance..."
+                  
+                  # Check if scripts are mounted
+                  echo "Checking mounted files:"
+                  ls -la /usr/local/bin/
+                  
+                  # Run log cleanup script
+                  echo "Running log cleanup..."
+                  if [ -f /usr/local/bin/log-cleanup.sh ]; then
+                    sh /usr/local/bin/log-cleanup.sh
+                  else
+                    echo "log-cleanup.sh not found"
+                  fi
+                  
+                  # Run log monitoring and rotation
+                  echo "Running log monitoring..."
+                  if [ -f /usr/local/bin/log-monitor.sh ]; then
+                    sh /usr/local/bin/log-monitor.sh
+                  else
+                    echo "log-monitor.sh not found"
+                  fi
+                  
+                  echo "Log maintenance completed"
+              volumeMounts:
+                - name: pihole-config-storage
+                  mountPath: /var/log/pihole
+                  subPath: logs
+                - name: logging-config
+                  mountPath: /usr/local/bin/log-cleanup.sh
+                  subPath: log-cleanup.sh
+                - name: logging-config
+                  mountPath: /usr/local/bin/log-monitor.sh
+                  subPath: log-monitor.sh
+          restartPolicy: OnFailure
+          volumes:
+            - name: pihole-config-storage
+              persistentVolumeClaim:
+                claimName: pihole-config-pvc
+            - name: logging-config
+              configMap:
+                name: pihole-logging-config
+                defaultMode: 0755

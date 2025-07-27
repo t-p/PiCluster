@@ -1,0 +1,141 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pihole
+  namespace: dns
+  labels:
+    app: pihole
+    component: dns-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pihole
+      component: dns-server
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: pihole
+        component: dns-server
+    spec:
+      securityContext:
+        fsGroup: 0
+        runAsGroup: 0
+        runAsUser: 0
+      nodeSelector:
+        kubernetes.io/hostname: node01
+      containers:
+        - name: pihole
+          image: pihole/pihole:latest
+          imagePullPolicy: Always
+          env:
+            - name: WEBPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: pihole-secret
+                  key: WEBPASSWORD
+                  optional: true
+            - name: SKIPGRAVITYONBOOT
+              value: "false"
+            - name: DNSMASQ_USER
+              value: root
+          envFrom:
+            - configMapRef:
+                name: pihole-config
+          ports:
+            - name: dns-tcp
+              containerPort: 53
+              protocol: TCP
+            - name: dns-udp
+              containerPort: 53
+              protocol: UDP
+            - name: web
+              containerPort: 80
+              protocol: TCP
+            - name: dhcp
+              containerPort: 67
+              protocol: UDP
+          livenessProbe:
+            tcpSocket:
+              port: 53
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            tcpSocket:
+              port: 53
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+            successThreshold: 1
+          startupProbe:
+            httpGet:
+              path: /admin/
+              port: 80
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 30
+            successThreshold: 1
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 200m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: true
+            privileged: true
+            runAsUser: 0
+            runAsGroup: 0
+            capabilities:
+              add:
+                - NET_ADMIN
+                - NET_RAW
+                - NET_BIND_SERVICE
+                - CHOWN
+                - FOWNER
+          volumeMounts:
+            - mountPath: /etc/pihole
+              name: pihole-config-storage
+              subPath: pihole
+            - mountPath: /etc/dnsmasq.d
+              name: pihole-config-storage
+              subPath: dnsmasq.d
+            - mountPath: /var/log/pihole
+              name: pihole-config-storage
+              subPath: logs
+            - mountPath: /etc/logrotate.d/pihole
+              name: logging-config
+              subPath: pihole-logrotate.conf
+            - mountPath: /usr/local/bin/log-monitor.sh
+              name: logging-config
+              subPath: log-monitor.sh
+            - mountPath: /usr/local/bin/log-cleanup.sh
+              name: logging-config
+              subPath: log-cleanup.sh
+            - mountPath: /etc/dnsmasq.d/99-kubernetes.conf
+              name: custom-dnsmasq-config
+              subPath: 99-kubernetes.conf
+      volumes:
+        - name: pihole-config-storage
+          persistentVolumeClaim:
+            claimName: pihole-config-pvc
+        - name: custom-dnsmasq-config
+          configMap:
+            name: pihole-custom-dnsmasq
+            defaultMode: 420
+        - name: logging-config
+          configMap:
+            name: pihole-logging-config
+            defaultMode: 0755
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30

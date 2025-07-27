@@ -1,0 +1,207 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pihole-config
+  namespace: dns
+  labels:
+    app: pihole
+    component: config
+data:
+  CONDITIONAL_FORWARDING: "false"
+  CORS_HOSTS: ""
+  CUSTOM_CACHE_SIZE: "10000"
+  DNS1: "45.90.28.0"
+  DNS2: "45.90.30.0"
+  DNSMASQ_LISTENING: "all"
+  DNSMASQ_LOG_ASYNC: "true"
+  DNSMASQ_OPTS: "--local-service=false --bogus-priv=false"
+  DNSMASQ_USER: "pihole"
+  DNSSEC: "true"
+  FTLCONF_AAAA_QUERY_ANALYSIS: "yes"
+  FTLCONF_ANALYZE_ONLY_A_AND_AAAA: "false"
+  FTLCONF_BLOCK_ICLOUD_PR: "false"
+  FTLCONF_CHECK_LOAD: "false"
+  FTLCONF_CHECK_SHMEM: "false"
+  FTLCONF_DBFILE: "/etc/pihole/pihole-FTL.db"
+  FTLCONF_DBINTERVAL: "1.0"
+  FTLCONF_IGNORE_LOCALHOST: "no"
+  FTLCONF_LOCAL_IPV4: "0.0.0.0"
+  FTLCONF_LOCAL_IPV6: "::"
+  FTLCONF_LOGFILE: "/var/log/pihole/pihole.log"
+  FTLCONF_MACVENDORDB: "/etc/pihole/macvendor.db"
+  FTLCONF_MAXDBDAYS: "365"
+  FTLCONF_MAXLOGAGE: "24.0"
+  FTLCONF_MOZILLA_CANARY: "false"
+  FTLCONF_PIDFILE: "/var/run/pihole-FTL.pid"
+  FTLCONF_PRIVACYLEVEL: "0"
+  FTLCONF_QUERYLOG_DESTINATION: "yes"
+  FTLCONF_QUERYLOG_PERMITTED: "permittedonly"
+  FTLCONF_QUERYLOG_REPLY: "yes"
+  FTLCONF_RATE_LIMIT: "1000/60"
+  FTLCONF_REPLY_ADDR4: ""
+  FTLCONF_REPLY_ADDR6: ""
+  FTLCONF_SOCKETFILE: "/var/run/pihole/FTL.sock"
+  INSTALL_WEB_INTERFACE: "true"
+  INSTALL_WEB_SERVER: "true"
+  INTERFACE: "eth0"
+  LIGHTTPD: "true"
+  PIHOLE_DNS_: "45.90.28.0;45.90.30.0"
+  PIHOLE_INTERFACE: "eth0"
+  QUERY_LOGGING: "true"
+  SKIPGRAVITYONBOOT: "false"
+  TEMPERATUREUNIT: "c"
+  TZ: "Europe/Amsterdam"
+  WEB_PORT: "80"
+  WEBTHEME: "default-dark"
+  WEBUIBOXEDLAYOUT: "boxed"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pihole-custom-dnsmasq
+  namespace: dns
+  labels:
+    app: pihole
+    component: dnsmasq-config
+data:
+  99-kubernetes.conf: |
+    # Allow queries from Kubernetes cluster networks
+    # Disable local-service restriction to accept queries from cluster pods
+    # This overrides the default local-service setting in the main config
+
+    # Accept queries from all interfaces (not just local)
+    bind-interfaces
+
+    # Listen on all interfaces
+    interface=eth0
+
+    # Allow queries from Kubernetes pod networks
+    # Common Kubernetes pod CIDR ranges
+    listen-address=0.0.0.0
+
+    # Disable the local-service restriction
+    # This allows queries from non-local networks like Kubernetes pods
+    # Note: This is less secure but necessary for cluster-wide DNS
+
+    # Explicitly disable local-service to allow queries from cluster networks
+    # This overrides the local-service setting in the main config
+    no-local-service
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pihole-logging-config
+  namespace: dns
+  labels:
+    app: pihole
+    component: logging
+data:
+  pihole-logrotate.conf: |
+    /var/log/pihole/*.log {
+        daily
+        rotate 7
+        compress
+        delaycompress
+        missingok
+        notifempty
+        create 644 pihole pihole
+        postrotate
+            # Signal Pi-hole FTL to reopen log files
+            if [ -f /var/run/pihole-FTL.pid ]; then
+                kill -USR1 $(cat /var/run/pihole-FTL.pid) 2>/dev/null || true
+            fi
+        endscript
+    }
+
+    /var/log/pihole/FTL.log {
+        daily
+        rotate 14
+        compress
+        delaycompress
+        missingok
+        notifempty
+        create 644 pihole pihole
+        postrotate
+            # Signal Pi-hole FTL to reopen log files
+            if [ -f /var/run/pihole-FTL.pid ]; then
+                kill -USR1 $(cat /var/run/pihole-FTL.pid) 2>/dev/null || true
+            fi
+        endscript
+    }
+
+  pihole-rsyslog.conf: |
+    # Pi-hole DNS query logging
+    :programname, isequal, "dnsmasq" /var/log/pihole/dnsmasq.log
+    :programname, isequal, "pihole-FTL" /var/log/pihole/FTL.log
+
+    # Stop processing these messages after logging
+    :programname, isequal, "dnsmasq" stop
+    :programname, isequal, "pihole-FTL" stop
+
+  log-cleanup.sh: |
+    #!/bin/bash
+    # Clean up old Pi-hole logs to manage storage
+
+    LOG_DIR="/var/log/pihole"
+
+    echo "$(date): Starting log cleanup in $LOG_DIR"
+
+    # Remove compressed logs older than 30 days
+    find "$LOG_DIR" -name "*.gz" -type f -mtime +30 -delete 2>/dev/null
+    echo "$(date): Removed compressed logs older than 30 days"
+
+    # Remove old rotated logs older than 14 days
+    find "$LOG_DIR" -name "*.old" -type f -mtime +14 -delete 2>/dev/null
+    echo "$(date): Removed rotated logs older than 14 days"
+
+    # Clean up empty log files older than 1 day
+    find "$LOG_DIR" -name "*.log" -type f -empty -mtime +1 -delete 2>/dev/null
+    echo "$(date): Removed empty log files older than 1 day"
+
+    # Show current log directory size
+    if command -v du >/dev/null 2>&1; then
+        echo "$(date): Current log directory size: $(du -sh "$LOG_DIR" 2>/dev/null | cut -f1)"
+    fi
+
+    echo "$(date): Log cleanup completed"
+
+  log-monitor.sh: |
+    #!/bin/bash
+    # Pi-hole log monitoring and health check script
+
+    LOG_DIR="/var/log/pihole"
+    PIHOLE_LOG="$LOG_DIR/pihole.log"
+    FTL_LOG="$LOG_DIR/FTL.log"
+
+    echo "$(date): Starting log monitoring in $LOG_DIR"
+
+    # Create log directory if it doesn't exist
+    mkdir -p "$LOG_DIR"
+    chmod 755 "$LOG_DIR"
+
+    # Check log file sizes and rotate if necessary
+    MAX_SIZE_BYTES=$((100 * 1024 * 1024))  # 100MB in bytes
+
+    for logfile in "$PIHOLE_LOG" "$FTL_LOG"; do
+        if [ -f "$logfile" ]; then
+            # Get file size (compatible with busybox)
+            size=$(wc -c < "$logfile" 2>/dev/null || echo 0)
+            
+            if [ "$size" -gt "$MAX_SIZE_BYTES" ]; then
+                echo "$(date): Rotating $logfile (size: $size bytes)"
+                mv "$logfile" "${logfile}.old"
+                touch "$logfile"
+                chmod 644 "$logfile"
+                echo "$(date): Rotated $logfile"
+            else
+                echo "$(date): $logfile size OK ($size bytes)"
+            fi
+        else
+            echo "$(date): Creating missing log file: $logfile"
+            touch "$logfile"
+            chmod 644 "$logfile"
+        fi
+    done
+
+    echo "$(date): Log monitoring check completed"
