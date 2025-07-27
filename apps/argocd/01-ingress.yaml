@@ -5,14 +5,14 @@ metadata:
   name: argocd-server-ingress
   namespace: argocd
   annotations:
-    kubernetes.io/ingress.class: "traefik"
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.tls: "true"
     # ArgoCD server requires gRPC passthrough
     traefik.ingress.kubernetes.io/router.middlewares: argocd-server-middleware@kubernetescrd
 spec:
+  ingressClassName: traefik
   rules:
-    - host: argocd.cluster.pfeiffer.pw
+    - host: argocd.pfeiffer.pw
       http:
         paths:
           - path: /
@@ -22,12 +22,8 @@ spec:
                 name: argocd-server
                 port:
                   number: 80
-  tls:
-    - hosts:
-        - argocd.cluster.pfeiffer.pw
-      secretName: argocd-server-tls
 ---
-apiVersion: traefik.containo.us/v1alpha1
+apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
   name: argocd-server-middleware
