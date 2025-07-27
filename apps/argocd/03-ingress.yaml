@@ -6,23 +6,13 @@ metadata:
   namespace: argocd
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: web
-    traefik.ingress.kubernetes.io/router.rule: Host(`argocd.home`) || Host(`gitops.home`)
+    traefik.ingress.kubernetes.io/router.rule: Host(`argocd.pfeiffer.pw`)
     # ArgoCD specific annotations
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
     nginx.ingress.kubernetes.io/force-ssl-redirect: "false"
 spec:
   rules:
-    - host: argocd.home
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: argocd-server
-                port:
-                  number: 80
-    - host: gitops.home
+    - host: argocd.pfeiffer.pw
       http:
         paths:
           - path: /
