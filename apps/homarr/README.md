@@ -5,7 +5,7 @@ Homarr is a modern dashboard for your homelab services, providing a clean interf
 ## Overview
 
 - **Namespace**: `dashboard`
-- **Image**: `ghcr.io/homarr-labs/homarr:v1.30.0`
+- **Image**: `ghcr.io/homarr-labs/homarr:latest`
 - **Access**: NodePort 31880 (http://NODE_IP:31880)
 - **Storage**: 250Mi NFS persistent volume
 - **Database**: SQLite
