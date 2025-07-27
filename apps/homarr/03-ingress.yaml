@@ -8,7 +8,7 @@ metadata:
     traefik.ingress.kubernetes.io/router.entrypoints: web
 spec:
   rules:
-    - host: dashboard.local
+    - host: dashboard.home
       http:
         paths:
           - path: /
@@ -17,8 +17,8 @@ spec:
               service:
                 name: homarr
                 port:
-                  number: 31880
-    - host: homarr.local
+                  number: 7575
+    - host: homarr.home
       http:
         paths:
           - path: /
@@ -27,4 +27,4 @@ spec:
               service:
                 name: homarr
                 port:
-                  number: 31880
+                  number: 7575
