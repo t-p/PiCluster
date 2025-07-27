@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: homarr
+  namespace: dashboard
+  labels:
+    app.kubernetes.io/name: homarr
+    app.kubernetes.io/instance: homarr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: homarr
+      app.kubernetes.io/instance: homarr
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: homarr
+        app.kubernetes.io/instance: homarr
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: node05
+      containers:
+      - name: homarr
+        image: ghcr.io/homarr-labs/homarr:v1.30.0
+        ports:
+        - name: http
+          containerPort: 3000
+          protocol: TCP
+        - name: websocket
+          containerPort: 3001
+          protocol: TCP
+        - name: nginx
+          containerPort: 7575
+          protocol: TCP
+        env:
+        - name: TZ
+          value: "UTC"
+        - name: DB_URL
+          value: "/appdata/db.sqlite"
+        - name: SECRET_ENCRYPTION_KEY
+          valueFrom:
+            secretKeyRef:
+              name: db-secret
+              key: db-encryption-key
+        - name: NODE_ENV
+          value: "production"
+        - name: NEXTJS_DISABLE_ESLINT
+          value: "true"
+        - name: REDIS_URL
+          value: "redis://localhost:6379"
+        - name: WEBSOCKET_URL
+          value: "ws://192.168.88.126:31881"
+        - name: WEBSOCKET_PORT
+          value: "3001"
+        - name: NEXT_PUBLIC_WEBSOCKET_URL
+          value: "ws://192.168.88.126:31881"
+        volumeMounts:
+        - name: homarr-database
+          mountPath: /appdata
+        resources:
+          requests:
+            cpu: 200m
+            memory: 512Mi
+          limits:
+            cpu: 1000m
+            memory: 2Gi
+      volumes:
+      - name: homarr-database
+        persistentVolumeClaim:
+          claimName: homarr-database
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: homarr
+  namespace: dashboard
+  labels:
+    app.kubernetes.io/name: homarr
+    app.kubernetes.io/instance: homarr
+spec:
+  type: NodePort
+  ports:
+  - name: app
+    port: 7575
+    protocol: TCP
+    targetPort: 7575
+    nodePort: 31880
+  selector:
+    app.kubernetes.io/name: homarr
+    app.kubernetes.io/instance: homarr
