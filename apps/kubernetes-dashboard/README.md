@@ -1,220 +1,441 @@
-# Kubernetes Dashboard on PiCluster
+# Kubernetes Dashboard
 
-This directory contains setup files and scripts to deploy and configure the official Kubernetes Dashboard on your PiCluster K3s setup.
+Web-based Kubernetes user interface for cluster management and monitoring.
 
 ## Overview
 
-The Kubernetes Dashboard is a web-based Kubernetes user interface that allows you to:
-- Deploy containerized applications to a Kubernetes cluster
-- Troubleshoot your containerized applications
-- Manage cluster resources
-- Get an overview of applications running on your cluster
-- Create or modify individual Kubernetes resources
+The Kubernetes Dashboard is a general-purpose, web-based UI for Kubernetes clusters. It provides a comprehensive interface for managing and monitoring your cluster resources, applications, and workloads through an intuitive web interface.
 
-## Prerequisites
+## Features
 
-- PiCluster with K3s installed and running
-- kubectl configured and working
-- Admin access to the cluster
+- **Cluster Overview**: Real-time cluster status, nodes, and resource utilization
+- **Workload Management**: Deploy, scale, and manage applications and services
+- **Resource Monitoring**: View pods, deployments, services, and storage resources
+- **Log Viewing**: Access container and pod logs directly from the interface
+- **YAML Editor**: Create and edit Kubernetes resources with built-in validation
+- **Shell Access**: Execute commands in containers via web terminal
+- **RBAC Integration**: Role-based access control with token authentication
+- **Multi-Namespace**: Manage resources across all cluster namespaces
+- **Real-time Updates**: Live updates of resource states and metrics
+
+## Architecture
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Web Browser   │───▶│   NodePort      │───▶│   Dashboard     │
+│   (HTTPS)       │    │   (30443)       │    │   Pod           │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+                                                        │
+                                                        ▼
+                                               ┌─────────────────┐
+                                               │   Kubernetes    │
+                                               │   API Server    │
+                                               └─────────────────┘
+```
+
+## Components
+
+### Core Application
+- **Deployment**: Official Kubernetes Dashboard v2.7.0
+- **Image**: `kubernetesui/dashboard:v2.7.0`
+- **Namespace**: `kubernetes-dashboard`
+- **Resources**: Managed by upstream deployment
+- **Security**: HTTPS with self-signed certificates
+
+### Authentication
+- **Service Account**: `admin-user` with cluster-admin privileges
+- **Authentication Method**: Bearer token authentication
+- **Token Lifetime**: 1 hour (renewable)
+- **RBAC**: Full cluster access via ClusterRoleBinding
+
+### Network Services
+- **Internal Service**: ClusterIP on port 443 (HTTPS)
+- **External Service**: NodePort 30443 for external access
+- **Protocol**: HTTPS only (TLS required)
+- **Access**: Available on all cluster node IPs
+
+## Deployment
+
+### Prerequisites
+- Kubernetes cluster (K3s) running
+- kubectl configured with admin access
 - Web browser with HTTPS support
+- Network access to cluster nodes on port 30443
 
-## Quick Start
+### Quick Start
 
-1. **Run the setup script:**
+```bash
+# Deploy Kubernetes Dashboard
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml
+
+# Create admin user and NodePort service
+kubectl apply -f apps/kubernetes-dashboard/01-admin-user.yaml
+kubectl apply -f apps/kubernetes-dashboard/02-nodeport-service.yaml
+
+# Get access token
+kubectl -n kubernetes-dashboard create token admin-user
+
+# Check deployment status
+kubectl get pods -n kubernetes-dashboard
+```
+
+### Configuration Files
+
+| File | Purpose |
+|------|---------|
+| `01-admin-user.yaml` | ServiceAccount and ClusterRoleBinding for admin access |
+| `02-nodeport-service.yaml` | NodePort service for external access on port 30443 |
+
+## Access
+
+### Web Interface
+- **URL**: `https://192.168.88.163:30443`
+- **Alternative URLs**: Available on all cluster node IPs
+- **Protocol**: HTTPS only (self-signed certificate)
+- **Authentication**: Bearer token required
+
+### Authentication Process
+1. **Generate Token**:
    ```bash
-   cd apps/kubernetes-dashboard
-   ./setup.sh
+   kubectl -n kubernetes-dashboard create token admin-user
    ```
 
-2. **Access the dashboard:**
-   - URL: `https://192.168.88.163:30443`
-   - Use the admin token provided by the setup script
+2. **Access Dashboard**: Navigate to `https://192.168.88.163:30443`
 
-3. **Login and explore your cluster!**
+3. **Login**: Select "Token" option and paste the generated token
 
-## Manual Setup
+4. **Accept Certificate**: Click "Advanced" → "Proceed to site" for self-signed cert
 
-If you prefer manual setup:
+### Alternative Access Methods
 
-### 1. Deploy Kubernetes Dashboard:
-```bash
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml
-```
-
-### 2. Create Admin User:
-```bash
-kubectl apply -f 01-admin-user.yaml
-```
-
-### 3. Create NodePort Service:
-```bash
-kubectl apply -f 02-nodeport-service.yaml
-```
-
-### 4. Get Access Token:
-```bash
-kubectl -n kubernetes-dashboard create token admin-user
-```
-
-## Files Included
-
-- **01-admin-user.yaml** - Creates admin ServiceAccount and ClusterRoleBinding
-- **02-nodeport-service.yaml** - Exposes dashboard via NodePort (30443)
-- **setup.sh** - Automated setup script
-- **README.md** - This documentation
-
-## Access Methods
-
-### Method 1: NodePort (Recommended)
-- **URL**: `https://192.168.88.163:30443`
-- **Pros**: Direct access, works from any network location
-- **Cons**: Uses self-signed certificate (browser warning)
-
-### Method 2: kubectl proxy
+#### kubectl proxy (HTTP)
 ```bash
 kubectl proxy
+# Access: http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/
 ```
-Then visit: `http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/`
 
-### Method 3: Port Forwarding
+#### Port Forwarding
 ```bash
 kubectl port-forward -n kubernetes-dashboard service/kubernetes-dashboard 8443:443
+# Access: https://localhost:8443
 ```
-Then visit: `https://localhost:8443`
 
-## Authentication
+## Monitoring
 
-The setup creates an admin user with cluster-admin privileges. To get a new token:
+### Health Checks
+- **Dashboard Pod**: Automatic liveness and readiness probes
+- **Service Status**: NodePort service health monitoring
+- **Token Validity**: 1-hour token expiration with renewal required
 
+### Dashboard Sections
+
+#### Cluster Overview
+- **Nodes**: Node status, capacity, and resource usage
+- **Namespaces**: All cluster namespaces and resource counts
+- **Persistent Volumes**: Storage resources and claims
+- **Events**: Cluster-wide events and alerts
+
+#### Workloads
+- **Deployments**: Application deployments and scaling
+- **Pods**: Individual pod status, logs, and metrics
+- **Replica Sets**: Replica set management and history
+- **Daemon Sets**: Node-level service deployments
+- **Jobs**: Batch jobs and cron jobs
+- **Stateful Sets**: Stateful application management
+
+#### Services & Discovery
+- **Services**: Service endpoints and load balancing
+- **Ingresses**: External access routing rules
+- **Network Policies**: Traffic control and security
+
+#### Storage
+- **Persistent Volumes**: Cluster storage resources
+- **Persistent Volume Claims**: Storage requests and bindings
+- **Storage Classes**: Dynamic provisioning configurations
+
+#### Configuration
+- **Config Maps**: Application configuration data
+- **Secrets**: Sensitive data and credentials
+- **Resource Quotas**: Namespace resource limits
+
+## Testing
+
+### Dashboard Accessibility
 ```bash
-kubectl -n kubernetes-dashboard create token admin-user
+# Check dashboard pod status
+kubectl get pods -n kubernetes-dashboard -l k8s-app=kubernetes-dashboard
+
+# Test NodePort service
+kubectl get service kubernetes-dashboard-nodeport -n kubernetes-dashboard
+
+# Verify service endpoints
+kubectl get endpoints -n kubernetes-dashboard
 ```
 
-### Token Usage:
-1. Copy the token from terminal
-2. Go to dashboard login page
-3. Select "Token" option
-4. Paste token and click "Sign In"
+### Authentication Testing
+```bash
+# Generate test token
+kubectl -n kubernetes-dashboard create token admin-user
 
-## Dashboard Features
+# Test token validity (should return user info)
+kubectl auth whoami --token="<your-token>"
 
-### Overview:
-- **Cluster status** - Nodes, namespaces, persistent volumes
-- **Workloads** - Deployments, pods, replica sets, daemon sets
-- **Services** - Services, ingresses, network policies
-- **Storage** - Persistent volumes, storage classes
-- **Config** - Config maps, secrets
+# Test cluster access with token
+kubectl get nodes --token="<your-token>"
+```
 
-### Management:
-- **Create resources** - Deploy applications via YAML or forms
-- **Edit resources** - Modify existing deployments and services
-- **Scale applications** - Increase/decrease replica counts
-- **View logs** - Container and pod logs
-- **Execute commands** - Shell access to containers
+### Functionality Testing
+```bash
+# Test from within cluster
+kubectl run test-pod --image=busybox --rm -it --restart=Never -- wget -qO- https://kubernetes-dashboard.kubernetes-dashboard.svc.cluster.local
 
-## Security Considerations
-
-### Admin Access:
-- The created admin-user has **full cluster access**
-- Consider creating limited-access users for production
-- Tokens have limited lifetime and need periodic renewal
-
-### Network Security:
-- Dashboard exposed on all node IPs via NodePort
-- Uses self-signed certificates (browser warnings expected)
-- Consider adding ingress with proper TLS for production
-
-### Best Practices:
-- **Change default passwords** in applications
-- **Monitor access logs** for suspicious activity
-- **Use RBAC** for granular permissions
-- **Regular updates** of dashboard and cluster
+# Test external access
+curl -k -I https://192.168.88.163:30443
+```
 
 ## Troubleshooting
 
-### Dashboard Not Accessible:
+### Common Issues
+
+#### Dashboard Not Accessible
 ```bash
-# Check pod status
-kubectl get pods -n kubernetes-dashboard
+# Check all dashboard resources
+kubectl get all -n kubernetes-dashboard
 
-# Check service
-kubectl get svc -n kubernetes-dashboard
-
-# Check logs
+# Check pod logs
 kubectl logs -n kubernetes-dashboard deployment/kubernetes-dashboard
+
+# Check service endpoints
+kubectl get endpoints -n kubernetes-dashboard
+
+# Test internal connectivity
+kubectl run debug --image=busybox --rm -it --restart=Never -- wget -qO- https://kubernetes-dashboard.kubernetes-dashboard.svc.cluster.local
 ```
 
-### Token Issues:
+#### Authentication Problems
 ```bash
-# Create new token
+# Generate new token
 kubectl -n kubernetes-dashboard create token admin-user
 
-# Check admin user exists
+# Verify admin user exists
 kubectl get serviceaccount admin-user -n kubernetes-dashboard
 
 # Check cluster role binding
 kubectl get clusterrolebinding admin-user
+
+# Test token permissions
+kubectl auth can-i '*' '*' --token="<your-token>"
 ```
 
-### Browser Certificate Warnings:
-- **Expected behavior** - Dashboard uses self-signed certificates
-- **Safe to proceed** - Click "Advanced" → "Proceed to site"
-- **Alternative** - Use kubectl proxy method for HTTP access
+#### Certificate Issues
+```bash
+# Check certificate details
+openssl s_client -connect 192.168.88.163:30443 -servername kubernetes-dashboard
 
-### Common Issues:
+# Alternative HTTP access via proxy
+kubectl proxy --port=8001
+# Then access: http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/
+```
 
-**"Forbidden" errors:**
-- Token expired - generate new token
-- Insufficient permissions - check RBAC bindings
+#### Network Connectivity
+```bash
+# Check NodePort service
+kubectl get service kubernetes-dashboard-nodeport -n kubernetes-dashboard -o wide
 
-**Can't reach dashboard:**
-- Check NodePort service exists
-- Verify firewall settings on nodes
-- Test with kubectl proxy method
+# Test port accessibility
+telnet 192.168.88.163 30443
 
-**Login loop:**
-- Clear browser cache and cookies
-- Try incognito/private browsing mode
-- Verify token is copied correctly (no extra spaces)
+# Check firewall rules (if applicable)
+sudo ufw status
+```
 
-## Monitoring Your Cluster
+### Error Solutions
 
-### Useful Dashboard Views:
+#### "Forbidden" or "Unauthorized" Errors
+- **Cause**: Expired or invalid token
+- **Solution**: Generate new token with `kubectl -n kubernetes-dashboard create token admin-user`
 
-**For Media Stack Monitoring:**
-- **Workloads → Deployments** - Check jellyfin, sonarr, radarr status
-- **Workloads → Pods** - View resource usage and restarts
-- **Storage → Persistent Volumes** - Monitor storage usage
-- **Network → Services** - Check service endpoints
+#### "This site can't be reached"
+- **Cause**: Network connectivity or service issues
+- **Solution**: Check NodePort service and node accessibility
 
-**For Troubleshooting:**
-- **Workloads → Pods → [pod-name] → Logs** - View application logs
-- **Cluster → Events** - System-wide events and errors
-- **Cluster → Nodes** - Node health and resource usage
+#### Login Loop or Blank Page
+- **Cause**: Browser cache or cookie issues
+- **Solution**: Clear browser data or use incognito mode
 
-## Customization
+#### "Internal error occurred"
+- **Cause**: Dashboard pod issues or API server problems
+- **Solution**: Check pod logs and restart if necessary
 
-### Creating Limited Users:
-Instead of cluster-admin, create users with specific permissions:
+## Configuration
+
+### Environment Variables
+Dashboard configuration is managed by the upstream deployment:
+
+- **Namespace**: `kubernetes-dashboard`
+- **Service Account**: Uses default dashboard service account + admin-user
+- **TLS**: Auto-generated self-signed certificates
+- **Port**: Internal 8443, external 30443
+
+### Admin User Configuration
+The admin user is configured with cluster-admin privileges:
 
 ```yaml
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
+# ServiceAccount
+apiVersion: v1
+kind: ServiceAccount
 metadata:
-  name: limited-user
-  namespace: specific-namespace
+  name: admin-user
+  namespace: kubernetes-dashboard
+
+# ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: admin-user
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: view  # or edit, admin
+  name: cluster-admin
 subjects:
 - kind: ServiceAccount
-  name: limited-user
+  name: admin-user
   namespace: kubernetes-dashboard
 ```
 
-### Adding to Homer Dashboard:
-Update your Homer configuration to include the dashboard:
+### NodePort Service Configuration
+External access is provided via NodePort service:
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: kubernetes-dashboard-nodeport
+  namespace: kubernetes-dashboard
+spec:
+  type: NodePort
+  ports:
+  - port: 443
+    targetPort: 8443
+    nodePort: 30443
+    protocol: TCP
+  selector:
+    k8s-app: kubernetes-dashboard
+```
+
+## Security
+
+### Access Control
+- **Authentication**: Bearer token authentication required
+- **Authorization**: RBAC-based permissions via ClusterRoleBinding
+- **Network**: HTTPS-only access with self-signed certificates
+- **Scope**: admin-user has full cluster-admin privileges
+
+### Security Considerations
+- **Token Management**: Tokens expire after 1 hour and must be regenerated
+- **Certificate Warnings**: Self-signed certificates trigger browser warnings (expected)
+- **Network Exposure**: Dashboard accessible on all node IPs via NodePort
+- **Admin Privileges**: Current setup provides full cluster access
+
+### Best Practices
+- **Limited Users**: Create role-specific users instead of cluster-admin for production
+- **Token Rotation**: Regularly regenerate access tokens
+- **Network Policies**: Consider implementing network policies for additional security
+- **TLS Certificates**: Use proper TLS certificates for production deployments
+
+### Creating Limited Access Users
+```yaml
+# Read-only user example
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: readonly-user
+  namespace: kubernetes-dashboard
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: readonly-user
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: view
+subjects:
+- kind: ServiceAccount
+  name: readonly-user
+  namespace: kubernetes-dashboard
+```
+
+## Maintenance
+
+### Token Management
+```bash
+# Generate new admin token
+kubectl -n kubernetes-dashboard create token admin-user
+
+# Create long-lived token (not recommended for production)
+kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: admin-user-token
+  namespace: kubernetes-dashboard
+  annotations:
+    kubernetes.io/service-account.name: admin-user
+type: kubernetes.io/service-account-token
+EOF
+
+# Get long-lived token
+kubectl get secret admin-user-token -n kubernetes-dashboard -o jsonpath='{.data.token}' | base64 -d
+```
+
+### Upgrading Dashboard
+```bash
+# Check current version
+kubectl get deployment kubernetes-dashboard -n kubernetes-dashboard -o jsonpath='{.spec.template.spec.containers[0].image}'
+
+# Upgrade to latest version
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml
+
+# Verify upgrade
+kubectl get pods -n kubernetes-dashboard
+kubectl rollout status deployment/kubernetes-dashboard -n kubernetes-dashboard
+
+# Reapply custom configurations
+kubectl apply -f apps/kubernetes-dashboard/01-admin-user.yaml
+kubectl apply -f apps/kubernetes-dashboard/02-nodeport-service.yaml
+```
+
+### Backup & Recovery
+```bash
+# Backup dashboard configuration
+kubectl get all,secrets,configmaps -n kubernetes-dashboard -o yaml > dashboard-backup.yaml
+
+# Backup admin user configuration
+kubectl get serviceaccount,clusterrolebinding admin-user -o yaml > admin-user-backup.yaml
+
+# Restore from backup
+kubectl apply -f dashboard-backup.yaml
+kubectl apply -f admin-user-backup.yaml
+```
+
+## Performance
+
+### Resource Usage
+- **CPU**: ~10-50m under normal load
+- **Memory**: ~50-100Mi typical usage
+- **Storage**: Minimal (configuration only)
+- **Network**: Low bandwidth usage
+
+### Scaling Considerations
+- Single instance sufficient for most use cases
+- Dashboard is stateless and can be scaled horizontally if needed
+- Performance depends on cluster size and API server responsiveness
+
+## Integration
+
+### Homarr Dashboard Integration
+Add to your Homarr configuration:
 
 ```yaml
 - name: "Kubernetes Dashboard"
@@ -225,46 +446,64 @@ Update your Homer configuration to include the dashboard:
   target: "_blank"
 ```
 
-## Upgrading
+### Monitoring Integration
+- **Prometheus**: Dashboard metrics available via Kubernetes API
+- **Grafana**: Create dashboards using Kubernetes data sources
+- **Alerting**: Set up alerts for dashboard availability
 
-To upgrade the dashboard:
+### Useful Dashboard Views for Your Cluster
 
-```bash
-# Apply latest version
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml
+#### Media Stack Monitoring
+- **Workloads → Deployments**: Check Jellyfin, Sonarr, Radarr status
+- **Workloads → Pods**: View resource usage and restart counts
+- **Storage → Persistent Volumes**: Monitor NFS storage usage
+- **Services & Discovery → Services**: Check service endpoints
 
-# Check upgrade status
-kubectl get pods -n kubernetes-dashboard
-
-# May need to regenerate admin user
-kubectl apply -f 01-admin-user.yaml
-```
+#### Infrastructure Monitoring
+- **Cluster → Nodes**: Node health and resource utilization
+- **Cluster → Events**: System-wide events and alerts
+- **Config and Storage → Persistent Volumes**: Storage capacity and claims
+- **Workloads → Daemon Sets**: System services like MetalLB
 
 ## Cleanup
 
-To remove the Kubernetes Dashboard:
-
+### Complete Removal
 ```bash
-# Delete dashboard
+# Remove dashboard deployment
 kubectl delete -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml
 
-# Delete admin user and NodePort
-kubectl delete -f 01-admin-user.yaml
-kubectl delete -f 02-nodeport-service.yaml
+# Remove custom configurations
+kubectl delete -f apps/kubernetes-dashboard/01-admin-user.yaml
+kubectl delete -f apps/kubernetes-dashboard/02-nodeport-service.yaml
+
+# Verify cleanup
+kubectl get all -n kubernetes-dashboard
+```
+
+### Partial Cleanup (Keep Dashboard, Remove Admin User)
+```bash
+# Remove admin user only
+kubectl delete -f apps/kubernetes-dashboard/01-admin-user.yaml
+kubectl delete service kubernetes-dashboard-nodeport -n kubernetes-dashboard
 ```
 
 ## Alternative Tools
 
-If you prefer other Kubernetes management tools:
+### Command Line Tools
+- **k9s**: Terminal-based cluster management with real-time updates
+- **kubectl**: Native Kubernetes CLI with extensive functionality
+- **kubectx/kubens**: Context and namespace switching utilities
 
-- **k9s** - Terminal-based cluster management
-- **Lens** - Desktop Kubernetes IDE  
-- **Portainer** - Container management platform
-- **Octant** - Web-based cluster introspection (discontinued)
+### Desktop Applications
+- **Lens**: Kubernetes IDE with advanced features and extensions
+- **Portainer**: Container management platform with Kubernetes support
+- **Rancher Desktop**: Local Kubernetes development environment
 
-## Useful Links
+### Web-based Alternatives
+- **Rancher**: Enterprise Kubernetes management platform
+- **OpenShift Console**: Red Hat's Kubernetes management interface
+- **Kubeapps**: Application marketplace and management
 
-- [Official Kubernetes Dashboard](https://github.com/kubernetes/dashboard)
-- [Dashboard Documentation](https://kubernetes.io/docs/tasks/access-application-cluster/web-ui-dashboard/)
-- [RBAC Documentation](https://kubernetes.io/docs/reference/access-authn-authz/rbac/)
-- [K3s Documentation](https://docs.k3s.io/)
+---
+
+**The Kubernetes Dashboard provides comprehensive web-based cluster management with full administrative access to your K3s cluster.**

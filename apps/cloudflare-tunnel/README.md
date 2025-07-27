@@ -42,7 +42,7 @@ To add new services (like ArgoCD), go to your Cloudflare Tunnel dashboard and ad
 | Service | Hostname | Service URL |
 |---------|----------|-------------|
 | ArgoCD | `argocd.yourdomain.com` | `http://argocd-server.argocd.svc.cluster.local:80` |
-| Homer | `homer.yourdomain.com` | `http://homer.homer.svc.cluster.local:8080` |
+| Homarr | `homarr.yourdomain.com` | `http://homarr.dashboard.svc.cluster.local:7575` |
 | Jellyfin | `jellyfin.yourdomain.com` | `http://jellyfin.jellyfin.svc.cluster.local:8096` |
 | Grafana | `grafana.yourdomain.com` | `http://grafana.monitoring.svc.cluster.local:3000` |
 
@@ -130,14 +130,14 @@ kubectl get secret tunnel-credentials -n cloudflare-tunnel
 ### Application Not Accessible
 1. **Verify service is running**:
    ```bash
-   kubectl get pods -n homer  # Replace with your app namespace
-   kubectl get svc -n homer
+   kubectl get pods -n dashboard  # Replace with your app namespace
+   kubectl get svc -n dashboard
    ```
 
 2. **Test internal connectivity**:
    ```bash
    kubectl run test-pod --image=busybox --rm -it --restart=Never -- \
-     wget -qO- http://homer.homer.svc.cluster.local:8080
+     wget -qO- http://homarr.dashboard.svc.cluster.local:7575
    ```
 
 3. **Check Cloudflare configuration**:
@@ -173,8 +173,8 @@ data:
     tunnel: YOUR_TUNNEL_ID
     credentials-file: /etc/cloudflared/creds/credentials.json
     ingress:
-      - hostname: homer.yourdomain.com
-        service: http://homer.homer.svc.cluster.local:8080
+      - hostname: homarr.yourdomain.com
+        service: http://homarr.dashboard.svc.cluster.local:7575
       - hostname: jellyfin.yourdomain.com
         service: http://jellyfin.jellyfin.svc.cluster.local:8096
       - service: http_status:404

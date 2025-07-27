@@ -1,8 +1,8 @@
 # PiCluster
 
-PiCluster is a fully automated, self-hosted Kubernetes media server stack designed for Raspberry Pi clusters. Built on a Turing Pi 2.5 carrier board with four Raspberry Pi Compute Module 4 nodes.
+PiCluster is a fully automated, self-hosted Kubernetes media server stack designed for Raspberry Pi clusters. Built on a Turing Pi 2.5 carrier board with four Raspberry Pi Compute Module 4 nodes, plus an additional standalone Raspberry Pi 5 as the control plane.
 
-This project provides manifests and configuration for running Jellyfin, Sonarr, Radarr, Transmission (with VPN), Jackett, and a modern dashboard—all orchestrated by K3s and backed by shared NFS storage. PiCluster is ideal for homelab enthusiasts, edge computing, and anyone seeking a robust, private alternative to cloud-based media solutions.
+This project provides manifests and configuration for running Jellyfin, Sonarr, Radarr, Transmission (with VPN), Prowlarr, Pi-hole DNS, Cloudflare Tunnel, and a modern dashboard—all orchestrated by K3s with GitOps via ArgoCD and backed by shared NFS storage. The hybrid architecture uses Compute Module 4s for worker nodes and a Raspberry Pi 5 for the control plane, providing optimal performance and reliability. PiCluster is ideal for homelab enthusiasts, edge computing, and anyone seeking a robust, private alternative to cloud-based media solutions.
 
 ---
 
@@ -29,21 +29,41 @@ This project provides manifests and configuration for running Jellyfin, Sonarr, 
 
 ## Hardware Setup
 
+### Architecture Overview
+
+This cluster uses a **hybrid architecture** combining two different Raspberry Pi platforms:
+
+- **Turing Pi 2.5 Carrier Board**: Houses 4x Raspberry Pi Compute Module 4 nodes as workers
+- **Standalone Raspberry Pi 5**: Serves as the dedicated control plane node
+
+**Benefits of this setup:**
+- **Enhanced Performance**: Pi 5 provides superior CPU/memory for Kubernetes control plane
+- **Improved Reliability**: Separate control plane reduces worker node impact on cluster management
+- **Better Resource Allocation**: Workers focus purely on application workloads
+- **Easier Maintenance**: Control plane can be maintained independently
+- **Future Expansion**: Easy to add more worker nodes to the Turing Pi board
+
 ### Requirements
 - Turing Pi 2.5 carrier board
 - 4x Raspberry Pi Compute Module 4 (with eMMC)
-- Micro SD card (for OS images)
+- 1x Raspberry Pi 5 (standalone, for control plane)
+- Micro SD card (for OS images and Pi 5)
 - Network connection to your LAN
 
 ### Node Configuration
-| Node | Role | IP Address | Hostname |
-|------|------|------------|----------|
-| Node 1 | Worker | 192.168.88.167 | node01 |
-| Node 2 | Worker | 192.168.88.164 | node02 |
-| Node 3 | Control Plane | 192.168.88.163 | node03 |
-| Node 4 | Worker | 192.168.88.162 | node04 |
+| Node | Hardware | Role | IP Address | Hostname |
+|------|----------|------|------------|----------|
+| Node 1 | CM4 (Turing Pi) | Worker | 192.168.88.167 | node01 |
+| Node 2 | CM4 (Turing Pi) | Worker | 192.168.88.164 | node02 |
+| Node 3 | CM4 (Turing Pi) | Worker | 192.168.88.163 | node03 |
+| Node 4 | CM4 (Turing Pi) | Worker | 192.168.88.162 | node04 |
+| Node 5 | **Pi 5 (Standalone)** | **Control Plane** | 192.168.88.126 | node05 |
 
-## Flash the eMMC on the Raspberry Pi Compute Module 4 and Configure the Nodes
+## Hardware Setup and Configuration
+
+### Turing Pi 2.5 Setup (Nodes 1-4)
+
+#### Flash the eMMC on the Raspberry Pi Compute Module 4 and Configure the Nodes
 ### Step 1: Prepare the OS Image
 1. Download the latest Raspberry Pi OS Lite (64-bit) image from the [official website](https://www.raspberrypi.com/software/operating-systems/#raspberry-pi-os-64-bit)
 2. Copy the image to the `images/` folder on your micro SD card
@@ -97,10 +117,39 @@ Monitor boot process:
 tpi uart get -n 1
 ```
 
-**Repeat steps 3-4 for all four Compute Module nodes.**
+**Repeat steps 3-4 for all four Compute Module nodes (node01-node04).**
 
-### Step 5: Configure Network and Hostnames
-After all nodes have booted, SSH into each node and configure networking.
+### Raspberry Pi 5 Setup (Node 5 - Control Plane)
+
+#### Step 6: Setup Standalone Raspberry Pi 5
+The control plane runs on a separate Raspberry Pi 5 for enhanced performance and reliability.
+
+**Flash Raspberry Pi OS:**
+1. Use Raspberry Pi Imager to flash Raspberry Pi OS Lite (64-bit) to a microSD card
+2. Enable SSH and configure user account during imaging
+3. Set hostname to `node05`
+4. Configure WiFi if desired (optional - ethernet recommended)
+
+**Initial Configuration:**
+```bash
+# SSH into the Pi 5
+ssh pi@192.168.88.126
+
+# Update system
+sudo apt update && sudo apt upgrade -y
+
+# Install essential tools
+sudo apt install -y curl wget vim htop iptables iptables-persistent
+
+# Enable memory cgroups for Kubernetes
+sudo sed -i '$ s/$/ cgroup_memory=1 cgroup_enable=memory/' /boot/firmware/cmdline.txt
+
+# Reboot to apply changes
+sudo reboot
+```
+
+### Step 7: Configure Network and Hostnames
+After all nodes have booted (CM4 nodes + Pi 5), SSH into each node and configure networking.
 
 Add all node IP addresses to `/etc/hosts` on each Compute Module:
 ```
@@ -109,6 +158,7 @@ Add all node IP addresses to `/etc/hosts` on each Compute Module:
 192.168.88.164 node02 node02.local
 192.168.88.163 node03 node03.local
 192.168.88.162 node04 node04.local
+192.168.88.126 node05 node05.local
 ```
 
 Set the appropriate hostname on each node:
@@ -119,11 +169,14 @@ hostnamectl set-hostname node01
 # On node02 (192.168.88.164)
 hostnamectl set-hostname node02
 
-# On node03 (192.168.88.163) - Control Plane
+# On node03 (192.168.88.163)
 hostnamectl set-hostname node03
 
 # On node04 (192.168.88.162)
 hostnamectl set-hostname node04
+
+# On node05 (192.168.88.126) - Control Plane
+hostnamectl set-hostname node05
 ```
 
 Update package lists and install essential tools:
@@ -142,24 +195,22 @@ This cluster uses K3s, a lightweight Kubernetes distribution optimized for edge 
 - **k3sup**: https://github.com/alexellis/k3sup (optional deployment tool)
 
 ### Step 1: Initialize the Control Plane Node
-On the control plane node (node03 - 192.168.88.163):
+On the control plane node (node05 - Raspberry Pi 5 - 192.168.88.126):
 ```bash
 curl -sfL https://get.k3s.io | sh -s - \
   --write-kubeconfig-mode 644 \
-  --node-ip 192.168.88.163 \
-  --disable local-storage \
-  --data-dir /mnt/k3s-data
+  --node-ip 192.168.88.126 \
+  --disable local-storage
 ```
 
 **Installation Options Explained:**
 - `--write-kubeconfig-mode 644`: Makes kubeconfig readable by non-root users
 - `--node-ip`: Specifies the node's IP address for cluster communication
 - `--disable local-storage`: Disables default local storage (we'll use NFS)
-- `--data-dir`: Custom data directory for K3s files
 
 Retrieve the cluster join token:
 ```bash
-cat /mnt/k3s-data/server/node-token
+sudo cat /var/lib/rancher/k3s/server/node-token
 ```
 
 Verify control plane is running:
@@ -169,9 +220,9 @@ kubectl get pods --all-namespaces
 ```
 
 ### Step 2: Join Worker Nodes to the Cluster
-On each worker node (node01, node02, node04), run:
+On each worker node (node01, node02, node03, node04), run:
 ```bash
-curl -sfL https://get.k3s.io | K3S_URL=https://192.168.88.163:6443 K3S_TOKEN=<TOKEN_FROM_STEP_1> sh -
+curl -sfL https://get.k3s.io | K3S_URL=https://192.168.88.126:6443 K3S_TOKEN=<TOKEN_FROM_STEP_1> sh -
 ```
 
 ### Step 3: Label Worker Nodes
@@ -179,6 +230,7 @@ From the control plane node, label all worker nodes:
 ```bash
 kubectl label node node01 node-role.kubernetes.io/worker=worker
 kubectl label node node02 node-role.kubernetes.io/worker=worker
+kubectl label node node03 node-role.kubernetes.io/worker=worker
 kubectl label node node04 node-role.kubernetes.io/worker=worker
 ```
 
@@ -190,15 +242,16 @@ kubectl get nodes -o wide
 Expected output:
 ```
 NAME     STATUS   ROLES                  AGE   VERSION        INTERNAL-IP      EXTERNAL-IP   OS-IMAGE
-node01   Ready    worker                 1m    v1.31.5+k3s1   192.168.88.167   <none>        Debian GNU/Linux 12 (bookworm)
-node02   Ready    worker                 1m    v1.31.5+k3s1   192.168.88.164   <none>        Debian GNU/Linux 12 (bookworm)
-node03   Ready    control-plane,master   5m    v1.31.5+k3s1   192.168.88.163   <none>        Debian GNU/Linux 12 (bookworm)
-node04   Ready    worker                 1m    v1.31.5+k3s1   192.168.88.162   <none>        Debian GNU/Linux 12 (bookworm)
+node01   Ready    worker                 1m    v1.32.6+k3s1   192.168.88.167   <none>        Debian GNU/Linux 12 (bookworm)  [CM4]
+node02   Ready    worker                 1m    v1.32.6+k3s1   192.168.88.164   <none>        Debian GNU/Linux 12 (bookworm)  [CM4]
+node03   Ready    worker                 1m    v1.32.6+k3s1   192.168.88.163   <none>        Debian GNU/Linux 12 (bookworm)  [CM4]
+node04   Ready    worker                 1m    v1.32.6+k3s1   192.168.88.162   <none>        Debian GNU/Linux 12 (bookworm)  [CM4]
+node05   Ready    control-plane,master   5m    v1.32.6+k3s1   192.168.88.126   <none>        Debian GNU/Linux 12 (bookworm)  [Pi5]
 ```
 ## Storage Configuration (NFS)
 
 ### Step 1: Install NFS Server
-On the control plane node (node03), install and configure NFS:
+On the control plane node (node05 - Raspberry Pi 5), install and configure NFS:
 ```bash
 sudo apt install nfs-kernel-server -y
 ```
@@ -206,7 +259,7 @@ sudo apt install nfs-kernel-server -y
 ### Step 2: Create Storage Directory Structure
 Create the directory structure for media server data:
 ```bash
-sudo mkdir -p /mnt/storage/{homer,jellyfin,transmission,sonarr,radarr,jackett}/{config,data}
+sudo mkdir -p /mnt/storage/{jellyfin,transmission,sonarr,radarr,jackett}/{config,data}
 sudo mkdir -p /mnt/storage/{downloads,media/{movies,tv,music}}
 sudo mkdir -p /mnt/storage/monitoring/{prometheus,grafana}
 sudo chown -R 1000:1000 /mnt/storage
@@ -248,11 +301,11 @@ sudo umount /tmp/nfs-test
 To manage the cluster from your local machine, copy the kubeconfig:
 
 ```bash
-# From your local machine
-scp pi@192.168.88.163:/etc/rancher/k3s/k3s.yaml ~/.kube/config-picluster
+# From your local machine (copy from Pi 5 control plane)
+scp pi@192.168.88.126:/etc/rancher/k3s/k3s.yaml ~/.kube/config-picluster
 
 # Update server endpoint in the config
-sed -i 's/127.0.0.1/192.168.88.163/g' ~/.kube/config-picluster
+sed -i 's/127.0.0.1/192.168.88.126/g' ~/.kube/config-picluster
 
 # Set KUBECONFIG environment variable
 export KUBECONFIG=~/.kube/config-picluster
@@ -269,25 +322,21 @@ This K3s cluster hosts a complete media server stack with automated content mana
 
 | Application | Purpose | Access URL | Service Type | Docs |
 |-------------|---------|------------|--------------|------|
-| **Homer** | Dashboard & Service Directory | `http://192.168.88.163:30080` | NodePort | [Homer README](apps/homer/README.md) |
-| **Jellyfin** | Media Server & Streaming | `http://192.168.88.163:8096` | LoadBalancer | [Jellyfin README](apps/jellyfin/README.md) |
-| **Transmission** | BitTorrent Client (VPN Protected) | `http://192.168.88.163:9091` | LoadBalancer | [Transmission README](apps/transmission/README.md) |
-| **Sonarr** | TV Series Management | `http://192.168.88.163:8989` | LoadBalancer | [Sonarr README](apps/sonarr/README.md) |
-| **Radarr** | Movie Management | `http://192.168.88.163:7878` | LoadBalancer | [Radarr README](apps/radarr/README.md) |
-| **Jackett** | Torrent Indexer Proxy | `http://192.168.88.163:9117` | LoadBalancer | |
-| **K8s Dashboard** | Kubernetes Management UI | `http://192.168.88.163:30443` | NodePort | [Kubernetes Dashboard README](apps/kubernetes-dashboard/README.md) |
-| **Argo CD** | GitOps Kubernetes Management | `http://192.168.88.163:30080` | NodePort | [Argo CD Docs](https://argo-cd.readthedocs.io/) |
-| **Grafana** | Monitoring Dashboards | `http://192.168.88.163:30300` | NodePort | [Monitoring README](apps/monitoring/README.md) |
-| **Prometheus** | Metrics Collection | `http://192.168.88.163:30900` | NodePort | [Monitoring README](apps/monitoring/README.md) |
+| **Homarr** | Modern Dashboard & Service Management | `http://192.168.88.126:31880` | NodePort | [Homarr README](apps/homarr/README.md) |
+| **Jellyfin** | Media Server & Streaming | `http://192.168.88.126:8096` | LoadBalancer | [Jellyfin README](apps/jellyfin/README.md) |
+| **Transmission** | BitTorrent Client (VPN Protected) | `http://192.168.88.162:9091` | LoadBalancer | [Transmission README](apps/transmission/README.md) |
+| **Sonarr** | TV Series Management | `http://192.168.88.162:8989` | LoadBalancer | [Sonarr README](apps/sonarr/README.md) |
+| **Radarr** | Movie Management | `http://192.168.88.162:7878` | LoadBalancer | [Radarr README](apps/radarr/README.md) |
+| **Prowlarr** | Indexer Manager (Jackett Replacement) | `http://192.168.88.162:9117` | LoadBalancer | [Prowlarr README](apps/prowlarr/README.md) |
+| **Pi-hole** | Network-wide DNS Ad Blocker | `http://192.168.88.167:31080/admin/` | NodePort | [Pi-hole README](apps/pihole/README.md) |
+| **Cloudflare Tunnel** | Secure Remote Access | External via Cloudflare | Tunnel | [Cloudflare Tunnel README](apps/cloudflare-tunnel/README.md) |
+| **K8s Dashboard** | Kubernetes Management UI | `https://192.168.88.163:30443` | NodePort | [Kubernetes Dashboard README](apps/kubernetes-dashboard/README.md) |
+| **Argo CD** | GitOps Kubernetes Management | `http://192.168.88.163:30080` | NodePort | [Argo CD README](apps/argocd/README.md) |
+| **Grafana** | Monitoring Dashboards | `http://192.168.88.126:30300` | NodePort | [Monitoring README](apps/monitoring/README.md) |
+| **Prometheus** | Metrics Collection | `http://192.168.88.126:30900` | NodePort | [Monitoring README](apps/monitoring/README.md) |
 
 ### Detailed Application Information
 
-#### 🏠 Homer - Service Dashboard
-- **Namespace**: `homer`
-- **Description**: Centralized dashboard providing easy access to all media server services
-- **Features**: Service status monitoring, custom themes, organized service tiles
-- **Configuration**: Mounted via NFS from `/mnt/storage/homer/config`
-- **More info**: [apps/homer/README.md](apps/homer/README.md)
 
 #### 🎬 Jellyfin - Media Server
 - **Namespace**: `jellyfin`
@@ -346,14 +395,43 @@ This K3s cluster hosts a complete media server stack with automated content mana
   - Downloads: `/mnt/storage/shared/downloads` (shared)
 - **More info**: [apps/radarr/README.md](apps/radarr/README.md)
 
-#### 🔍 Jackett - Indexer Proxy
-- **Namespace**: `jackett`
-- **Description**: Proxy server for torrent trackers, providing unified API for Sonarr/Radarr
+#### 🔍 Prowlarr - Indexer Manager
+- **Namespace**: `prowlarr`
+- **Description**: Modern indexer manager and proxy for torrent trackers (Jackett replacement)
 - **Features**:
   - Support for 500+ torrent trackers
   - Unified search API for *arr applications
   - Automatic tracker health monitoring
-- **Storage**: Config: `/mnt/storage/jackett/config`
+  - Built-in sync with Sonarr/Radarr
+  - Modern web interface with statistics
+- **Storage**: Config: `/mnt/storage/prowlarr/config`
+- **More info**: [apps/prowlarr/README.md](apps/prowlarr/README.md)
+
+#### 🛡️ Pi-hole - DNS Ad Blocker
+- **Namespace**: `dns`
+- **Description**: Network-wide DNS ad blocking and filtering service
+- **Features**:
+  - Network-wide ad blocking at DNS level
+  - Custom blocklists with automatic updates
+  - DNS filtering for malicious domains
+  - Web interface for management and statistics
+  - High availability via LoadBalancer
+  - DNSSEC support
+- **Storage**: Config and logs: `/mnt/storage/pihole/`
+- **DNS Servers**: Available on all cluster node IPs (port 53)
+- **More info**: [apps/pihole/README.md](apps/pihole/README.md)
+
+#### 🌐 Cloudflare Tunnel
+- **Namespace**: `cloudflare-tunnel`
+- **Description**: Secure remote access to cluster services via Cloudflare
+- **Features**:
+  - Secure tunneling without port forwarding
+  - SSL/TLS termination at Cloudflare edge
+  - Access control and authentication
+  - Multiple service routing
+  - Zero-trust network access
+- **Access**: External via configured Cloudflare domains
+- **More info**: [apps/cloudflare-tunnel/README.md](apps/cloudflare-tunnel/README.md)
 
 #### ⚙️ Kubernetes Dashboard
 - **Namespace**: `kubernetes-dashboard`
@@ -404,7 +482,7 @@ The media server uses NFS-based persistent storage with the following structure:
 
 ```
 /mnt/storage/
-├── homer/config/          # Homer dashboard configuration
+
 ├── jellyfin/config/       # Jellyfin server settings and database
 ├── transmission/config/   # Transmission and VPN configuration
 ├── sonarr/config/         # Sonarr application data
@@ -426,35 +504,54 @@ For more details on storage and shared PVCs, see [downloads-storage/README.md](a
 
 - **Load Balancer**: Uses K3s built-in load balancer with VIP spanning all nodes
 - **VPN Protection**: Transmission pod routes all traffic through WireGuard tunnel
-- **NodePort Services**: Direct node access for core services (Homer, Jellyfin, Dashboard)
+- **NodePort Services**: Direct node access for core services (Homarr, Jellyfin, Dashboard)
 - **Internal Communication**: Apps communicate via Kubernetes service discovery
 
 ### Deployment and Management
 
 #### Deploy All Applications
+
+**Option 1: Manual Deployment**
 ```bash
 # Deploy core infrastructure
 kubectl apply -f apps/shared-storage/
 
 # Deploy applications (order matters for dependencies)
 kubectl apply -f apps/jellyfin/
-kubectl apply -f apps/jackett/
+kubectl apply -f apps/prowlarr/
 kubectl apply -f apps/transmission/
 kubectl apply -f apps/sonarr/
 kubectl apply -f apps/radarr/
-kubectl apply -f apps/homer/
+kubectl apply -f apps/homarr/
+kubectl apply -f apps/pihole/
+kubectl apply -f apps/cloudflare-tunnel/
 
-# Deploy monitoring stack
+# Deploy monitoring and management
 kubectl apply -f apps/monitoring/
 kubectl apply -f apps/kubernetes-dashboard/
+kubectl apply -f apps/argocd/
+```
+
+**Option 2: GitOps with ArgoCD (Recommended)**
+```bash
+# Deploy ArgoCD first
+kubectl apply -f apps/argocd/
+
+# Apply all application manifests to ArgoCD
+kubectl apply -f apps/argocd/*-application.yaml
+
+# ArgoCD will automatically sync and manage all applications
 ```
 
 
 
 #### Check Application Status
 ```bash
-# View all media server pods
-kubectl get pods --all-namespaces | grep -E "(homer|jellyfin|transmission|sonarr|radarr|jackett)"
+# View all application pods
+kubectl get pods --all-namespaces | grep -E "(homarr|jellyfin|transmission|sonarr|radarr|prowlarr|pihole|cloudflare)"
+
+# Check ArgoCD applications
+kubectl get applications -n argocd
 
 # Check persistent volumes
 kubectl get pv
@@ -484,12 +581,18 @@ kubectl logs -n radarr deployment/radarr
 The applications work together in an automated content acquisition pipeline:
 
 1. **Content Request**: User adds movie/show to Radarr/Sonarr
-2. **Search**: Radarr/Sonarr queries Jackett for available releases
+2. **Search**: Radarr/Sonarr queries Prowlarr for available releases
 3. **Download**: Best release sent to Transmission (via VPN) for download
 4. **Processing**: Completed downloads moved and renamed by Radarr/Sonarr
 5. **Library Update**: Jellyfin automatically detects new content
 6. **Streaming**: Content available for streaming through Jellyfin
 
-This setup provides a fully automated, secure, and scalable media server solution running on Kubernetes.
+**Additional Services:**
+- **Pi-hole**: Provides network-wide ad blocking for all cluster traffic
+- **Cloudflare Tunnel**: Enables secure remote access to services
+- **ArgoCD**: Manages application deployments via GitOps
+- **Homarr**: Provides unified dashboard for all services
+
+This setup provides a fully automated, secure, and scalable media server solution running on Kubernetes with modern DevOps practices.
 
 ---
