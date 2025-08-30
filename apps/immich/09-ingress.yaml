@@ -1,0 +1,100 @@
+---
+# Immich Ingress for external web access
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: immich-ingress
+  namespace: immich
+  labels:
+    app: immich
+    component: ingress
+  annotations:
+    # Use web entrypoint for HTTP access
+    traefik.ingress.kubernetes.io/router.entrypoints: web
+    # Enable session affinity for better user experience
+    traefik.ingress.kubernetes.io/service.sticky.cookie: "true"
+    traefik.ingress.kubernetes.io/service.sticky.cookie.name: "immich-session"
+    traefik.ingress.kubernetes.io/service.sticky.cookie.httponly: "true"
+    traefik.ingress.kubernetes.io/service.sticky.cookie.secure: "false"
+    # Middleware temporarily disabled for troubleshooting
+    # traefik.ingress.kubernetes.io/router.middlewares: immich-upload-middleware@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
+    # Primary domain for Immich access
+    - host: immich.home
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: immich-server
+                port:
+                  number: 3001
+    # Alternative domain for photos access
+    - host: photos.home
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: immich-server
+                port:
+                  number: 3001
+    # IP-based access with specific path to avoid conflicts
+    - http:
+        paths:
+          - path: /immich
+            pathType: Prefix
+            backend:
+              service:
+                name: immich-server
+                port:
+                  number: 3001
+---
+# Middleware for handling large file uploads and API requests
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: immich-upload-middleware
+  namespace: immich
+  labels:
+    app: immich
+    component: middleware
+spec:
+  buffering:
+    # Disable buffering for streaming uploads
+    maxRequestBodyBytes: 0
+    memRequestBodyBytes: 0
+    maxResponseBodyBytes: 0
+    memResponseBodyBytes: 0
+    retryExpression: "IsNetworkError() && Attempts() <= 2"
+  headers:
+    customRequestHeaders:
+      # Preserve original client IP for logging
+      X-Forwarded-For: ""
+      X-Real-IP: ""
+    customResponseHeaders:
+      # Security headers for photo management application
+      X-Frame-Options: "SAMEORIGIN"
+      X-Content-Type-Options: "nosniff"
+      X-XSS-Protection: "1; mode=block"
+      Referrer-Policy: "strict-origin-when-cross-origin"
+---
+# Middleware for path stripping when accessing via /immich path
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: immich-stripprefix-middleware
+  namespace: immich
+  labels:
+    app: immich
+    component: middleware
+spec:
+  stripPrefix:
+    prefixes:
+      - "/immich"
+# Note: For external HTTPS access, use Cloudflare Tunnel instead of TLS ingress
+# See apps/cloudflare-tunnel/ for secure external access configuration

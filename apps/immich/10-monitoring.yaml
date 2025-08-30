@@ -1,0 +1,157 @@
+---
+# ServiceMonitor for Prometheus scraping (compatible with existing Prometheus setup)
+apiVersion: v1
+kind: Service
+metadata:
+  name: immich-server-metrics
+  namespace: immich
+  labels:
+    app: immich-server
+    component: metrics
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "2283"
+    prometheus.io/path: "/api/server/ping"
+    prometheus.io/scheme: "http"
+spec:
+  selector:
+    app: immich-server
+  ports:
+    - name: metrics
+      port: 2283
+      targetPort: 2283
+      protocol: TCP
+  type: ClusterIP
+---
+# ConfigMap with monitoring configuration and alerting rules
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: immich-monitoring-config
+  namespace: immich
+  labels:
+    app: immich
+    component: monitoring
+data:
+  prometheus-rules.yml: |
+    groups:
+    - name: immich.rules
+      rules:
+      # Server availability alerts
+      - alert: ImmichServerDown
+        expr: up{job="immich-server"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          service: immich
+        annotations:
+          summary: "Immich server is down"
+          description: "Immich server has been down for more than 5 minutes"
+
+      # High memory usage alert
+      - alert: ImmichHighMemoryUsage
+        expr: (container_memory_usage_bytes{pod=~"immich-server-.*"} / container_spec_memory_limit_bytes{pod=~"immich-server-.*"}) * 100 > 90
+        for: 10m
+        labels:
+          severity: warning
+          service: immich
+        annotations:
+          summary: "Immich server high memory usage"
+          description: "Immich server memory usage is above 90% for more than 10 minutes"
+
+      # High CPU usage alert
+      - alert: ImmichHighCPUUsage
+        expr: (rate(container_cpu_usage_seconds_total{pod=~"immich-server-.*"}[5m]) * 100) > 80
+        for: 15m
+        labels:
+          severity: warning
+          service: immich
+        annotations:
+          summary: "Immich server high CPU usage"
+          description: "Immich server CPU usage is above 80% for more than 15 minutes"
+
+      # Storage space alert
+      - alert: ImmichStorageSpaceLow
+        expr: (node_filesystem_avail_bytes{mountpoint="/mnt/storage"} / node_filesystem_size_bytes{mountpoint="/mnt/storage"}) * 100 < 10
+        for: 5m
+        labels:
+          severity: warning
+          service: immich
+        annotations:
+          summary: "Immich storage space low"
+          description: "Immich storage space is below 10%"
+
+      # Pod restart alert
+      - alert: ImmichPodRestartingTooOften
+        expr: rate(kube_pod_container_status_restarts_total{pod=~"immich-.*"}[1h]) * 3600 > 5
+        for: 5m
+        labels:
+          severity: warning
+          service: immich
+        annotations:
+          summary: "Immich pod restarting too often"
+          description: "Immich pod {{ $labels.pod }} is restarting more than 5 times per hour"
+
+  grafana-dashboard.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Immich Photo Management",
+        "tags": ["immich", "photos"],
+        "style": "dark",
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Immich Server Status",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "up{job=\"immich-server\"}",
+                "legendFormat": "Server Status"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "green", "value": 1}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 2,
+            "title": "Memory Usage",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "container_memory_usage_bytes{pod=~\"immich-.*\"}",
+                "legendFormat": "{{ pod }}"
+              }
+            ]
+          },
+          {
+            "id": 3,
+            "title": "CPU Usage",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(container_cpu_usage_seconds_total{pod=~\"immich-.*\"}[5m]) * 100",
+                "legendFormat": "{{ pod }}"
+              }
+            ]
+          }
+        ],
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "refresh": "30s"
+      }
+    }

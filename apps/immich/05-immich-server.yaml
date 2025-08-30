@@ -1,0 +1,429 @@
+---
+# Immich Server Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: immich-server
+  namespace: immich
+  labels:
+    app: immich-server
+    component: server
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: immich-server
+  template:
+    metadata:
+      labels:
+        app: immich-server
+        component: server
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "2283"
+        prometheus.io/path: "/api/server/ping"
+        # Logging configuration
+        fluentd.org/include: "true"
+        fluentd.org/multiline: "true"
+        # Resource monitoring
+        monitoring.coreos.com/scrape: "true"
+        monitoring.coreos.com/port: "2283"
+        monitoring.coreos.com/path: "/api/server/ping"
+    spec:
+      containers:
+        - name: immich-server
+          image: ghcr.io/immich-app/immich-server:v1.139.4
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 2283
+              name: http
+              protocol: TCP
+
+          env:
+            # Node.js environment
+            - name: NODE_ENV
+              value: "production"
+
+            # Database connection configuration
+            - name: DB_HOSTNAME
+              value: "immich-postgres"
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_DATABASE_NAME
+              value: "immich"
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: immich-postgres-secret
+                  key: username
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: immich-postgres-secret
+                  key: password
+
+            # Redis connection configuration
+            - name: REDIS_HOSTNAME
+              value: "immich-redis"
+            - name: REDIS_PORT
+              value: "6379"
+            - name: REDIS_DBINDEX
+              value: "0"
+
+            # Machine Learning service configuration
+            - name: MACHINE_LEARNING_ENABLED
+              value: "true"
+            - name: MACHINE_LEARNING_URL
+              value: "http://immich-ml:3003"
+
+            # Server configuration
+            - name: SERVER_EXTERNAL_DOMAIN
+              value: "http://immich.local:31283"
+            - name: IMMICH_WEB_URL
+              value: "http://immich.local:31283"
+            - name: IMMICH_SERVER_URL
+              value: "http://immich.local:31283"
+
+            # Upload and storage configuration
+            - name: UPLOAD_LOCATION
+              value: "/usr/src/app/upload"
+            - name: IMMICH_MEDIA_LOCATION
+              value: "/usr/src/app/upload/library"
+            - name: IMMICH_CONFIG_FILE
+              value: "/config/immich-config.json"
+
+            # Performance and optimization
+            - name: NODE_OPTIONS
+              value: "--max-old-space-size=2048"
+            - name: IMMICH_WORKERS
+              value: "2"
+            - name: IMMICH_WORKER_TIMEOUT
+              value: "120000"
+
+            # Security configuration
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: immich-server-secret
+                  key: jwt-secret
+
+            # Feature flags
+            - name: IMMICH_TELEMETRY_INCLUDE
+              value: "all"
+            - name: IMMICH_TELEMETRY_EXCLUDE
+              value: ""
+            - name: DISABLE_REVERSE_GEOCODING
+              value: "false"
+            - name: REVERSE_GEOCODING_PRECISION
+              value: "3"
+
+            # Logging configuration
+            - name: LOG_LEVEL
+              value: "log"
+            - name: IMMICH_LOG_LEVEL
+              value: "log"
+            - name: IMMICH_METRICS_ENABLED
+              value: "true"
+            - name: IMMICH_METRICS_PORT
+              value: "3001"
+
+            # Health check configuration
+            - name: IMMICH_HEALTH_CHECK_ENABLED
+              value: "true"
+            - name: IMMICH_HEALTH_CHECK_INTERVAL
+              value: "30000"
+
+            # Monitoring and observability
+            - name: IMMICH_TELEMETRY_ENABLED
+              value: "true"
+            - name: IMMICH_PROMETHEUS_ENABLED
+              value: "true"
+
+          # Resource limits optimized for photo processing
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: 1000m
+              memory: 2Gi
+
+          # Volume mounts for NFS media storage
+          volumeMounts:
+            - name: media-library
+              mountPath: /usr/src/app/upload/library
+            - name: media-uploads
+              mountPath: /usr/src/app/upload/upload
+            - name: media-thumbs
+              mountPath: /usr/src/app/upload/thumbs
+            - name: server-config
+              mountPath: /config
+              readOnly: true
+            - name: temp-processing
+              mountPath: /tmp
+
+          # Health checks for server availability
+          livenessProbe:
+            httpGet:
+              path: /api/server/ping
+              port: 2283
+              scheme: HTTP
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/server/ping
+              port: 2283
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          # Startup probe for initial application loading
+          startupProbe:
+            httpGet:
+              path: /api/server/ping
+              port: 2283
+              scheme: HTTP
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 12 # Allow up to 2 minutes for startup
+
+      volumes:
+        # NFS storage for media files
+        - name: media-library
+          persistentVolumeClaim:
+            claimName: immich-library-pvc
+        - name: media-uploads
+          persistentVolumeClaim:
+            claimName: immich-uploads-pvc
+        - name: media-thumbs
+          persistentVolumeClaim:
+            claimName: immich-thumbs-pvc
+        # ConfigMap for server configuration
+        - name: server-config
+          configMap:
+            name: immich-server-config
+        # Temporary processing space
+        - name: temp-processing
+          emptyDir:
+            sizeLimit: 10Gi
+
+      # Pin to node05 for NVMe performance and storage availability
+      nodeSelector:
+        kubernetes.io/hostname: node05
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values:
+                      - node05
+
+      # Security context for proper file permissions
+      securityContext:
+        fsGroup: 1000 # immich user group
+        runAsUser: 1000 # immich user
+        runAsNonRoot: true
+
+      # Restart policy for server reliability
+      restartPolicy: Always
+---
+# ConfigMap for Immich server configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: immich-server-config
+  namespace: immich
+  labels:
+    app: immich-server
+    component: server
+data:
+  # Immich server configuration optimized for cluster deployment
+  immich-config.json: |
+    {
+      "ffmpeg": {
+        "crf": 23,
+        "threads": 0,
+        "preset": "ultrafast",
+        "targetVideoCodec": "h264",
+        "acceptedVideoCodecs": ["h264"],
+        "targetAudioCodec": "aac",
+        "acceptedAudioCodecs": ["aac", "mp3"],
+        "targetResolution": "720",
+        "maxBitrate": "0",
+        "bframes": -1,
+        "refs": 0,
+        "gopSize": 0,
+        "npl": 0,
+        "temporalAQ": false,
+        "cqMode": "auto",
+        "twoPass": false,
+        "preferredHwDevice": "auto",
+        "transcode": "required",
+        "tonemap": "hable",
+        "accel": "disabled"
+      },
+      "job": {
+        "backgroundTask": {
+          "concurrency": 5
+        },
+        "smartSearch": {
+          "concurrency": 2
+        },
+        "metadataExtraction": {
+          "concurrency": 5
+        },
+        "faceDetection": {
+          "concurrency": 2
+        },
+        "search": {
+          "concurrency": 5
+        },
+        "sidecar": {
+          "concurrency": 5
+        },
+        "library": {
+          "concurrency": 5
+        },
+        "migration": {
+          "concurrency": 5
+        },
+        "thumbnailGeneration": {
+          "concurrency": 3
+        },
+        "videoConversion": {
+          "concurrency": 1
+        }
+      },
+      "logging": {
+        "enabled": true,
+        "level": "log"
+      },
+      "machineLearning": {
+        "enabled": true,
+        "url": "http://immich-ml:3003",
+        "clip": {
+          "enabled": true,
+          "modelName": "ViT-B-32::openai"
+        },
+        "duplicateDetection": {
+          "enabled": true,
+          "maxDistance": 0.01
+        },
+        "facialRecognition": {
+          "enabled": true,
+          "modelName": "buffalo_l",
+          "minScore": 0.7,
+          "maxDistance": 0.5,
+          "minFaces": 3
+        }
+      },
+      "map": {
+        "enabled": false,
+        "lightStyle": "https://tiles.stadiamaps.com/styles/alidade_smooth.json",
+        "darkStyle": "https://tiles.stadiamaps.com/styles/alidade_smooth_dark.json"
+      },
+      "reverseGeocoding": {
+        "enabled": true
+      },
+      "oauth": {
+        "enabled": false,
+        "issuerUrl": "",
+        "clientId": "",
+        "clientSecret": "",
+        "scope": "openid email profile",
+        "storageLabelClaim": "preferred_username",
+        "storageQuotaClaim": "immich_quota",
+        "defaultStorageQuota": 0,
+        "buttonText": "Login with OAuth",
+        "autoRegister": true,
+        "autoLaunch": false,
+        "mobileOverrideEnabled": false,
+        "mobileRedirectUri": ""
+      },
+      "passwordLogin": {
+        "enabled": true
+      },
+      "storageTemplate": {
+        "enabled": false,
+        "hashVerificationEnabled": true,
+        "template": "{{y}}/{{y}}-{{MM}}-{{dd}}/{{filename}}"
+      },
+      "thumbnail": {
+        "webpSize": 250,
+        "jpegSize": 1440,
+        "quality": 80,
+        "colorspace": "p3"
+      },
+      "newVersionCheck": {
+        "enabled": true
+      },
+      "trash": {
+        "enabled": true,
+        "days": 30
+      },
+      "theme": {
+        "customCss": ""
+      },
+      "library": {
+        "scan": {
+          "enabled": true,
+          "cronExpression": "0 0 * * *"
+        },
+        "watch": {
+          "enabled": false
+        }
+      },
+      "server": {
+        "externalDomain": "",
+        "loginPageMessage": ""
+      },
+      "monitoring": {
+        "enabled": true,
+        "metrics": {
+          "enabled": true,
+          "port": 3001,
+          "path": "/api/server/ping"
+        },
+        "healthCheck": {
+          "enabled": true,
+          "endpoint": "/api/server/ping",
+          "interval": 30000,
+          "timeout": 5000
+        },
+        "logging": {
+          "level": "log",
+          "format": "json",
+          "enableRequestLogging": true,
+          "enableErrorLogging": true
+        }
+      },
+      "notifications": {
+        "smtp": {
+          "enabled": false,
+          "from": "",
+          "replyTo": "",
+          "transport": {
+            "ignoreCert": false,
+            "host": "",
+            "port": 587,
+            "username": "",
+            "password": ""
+          }
+        }
+      }
+    }

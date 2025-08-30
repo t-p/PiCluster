@@ -1,0 +1,162 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: immich
+  labels:
+    name: immich
+---
+# StorageClass for local NVMe storage on node05
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: local-nvme-node05
+provisioner: kubernetes.io/no-provisioner
+volumeBindingMode: WaitForFirstConsumer
+reclaimPolicy: Retain
+---
+# PersistentVolume for PostgreSQL on node05 NVMe
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: immich-postgres-pv
+  labels:
+    app: immich-postgres
+spec:
+  capacity:
+    storage: 100Gi
+  accessModes:
+  - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: local-nvme-node05
+  hostPath:
+    path: /opt/immich/postgres
+    type: DirectoryOrCreate
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - node05
+---
+# PersistentVolume for Redis on node05 NVMe
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: immich-redis-pv
+  labels:
+    app: immich-redis
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+  - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: local-nvme-node05
+  hostPath:
+    path: /opt/immich/redis
+    type: DirectoryOrCreate
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - node05
+---
+# PersistentVolume for ML models on node05 NVMe
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: immich-ml-models-pv
+  labels:
+    app: immich-ml
+spec:
+  capacity:
+    storage: 20Gi
+  accessModes:
+  - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: local-nvme-node05
+  hostPath:
+    path: /opt/immich/ml-models
+    type: DirectoryOrCreate
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - node05
+---
+# PVC for photo/video library storage (NFS)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: immich-library-pvc
+  namespace: immich
+  labels:
+    app: immich
+    component: library
+spec:
+  accessModes:
+  - ReadWriteMany
+  storageClassName: nfs
+  resources:
+    requests:
+      storage: 500Gi
+---
+# PVC for upload temporary storage (NFS)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: immich-uploads-pvc
+  namespace: immich
+  labels:
+    app: immich
+    component: uploads
+spec:
+  accessModes:
+  - ReadWriteMany
+  storageClassName: nfs
+  resources:
+    requests:
+      storage: 50Gi
+---
+# PVC for thumbnail storage (NFS)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: immich-thumbs-pvc
+  namespace: immich
+  labels:
+    app: immich
+    component: thumbs
+spec:
+  accessModes:
+  - ReadWriteMany
+  storageClassName: nfs
+  resources:
+    requests:
+      storage: 50Gi
+---
+# PVC for backup storage (NFS)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: immich-backups-pvc
+  namespace: immich
+  labels:
+    app: immich
+    component: backups
+spec:
+  accessModes:
+  - ReadWriteMany
+  storageClassName: nfs
+  resources:
+    requests:
+      storage: 100Gi

@@ -1,0 +1,76 @@
+---
+# Immich Server NodePort Service for external web access
+apiVersion: v1
+kind: Service
+metadata:
+  name: immich-server-nodeport
+  namespace: immich
+  labels:
+    app: immich-server
+    component: server
+    service-type: external
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "3001"
+    metallb.universe.tf/allow-shared-ip: "immich-cluster"
+spec:
+  type: NodePort
+  ports:
+  - port: 3001
+    targetPort: 2283
+    nodePort: 31283
+    protocol: TCP
+    name: http
+  selector:
+    app: immich-server
+  # Session affinity for better user experience
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800  # 3 hours
+---
+# Immich Server ClusterIP Service for internal cluster access
+apiVersion: v1
+kind: Service
+metadata:
+  name: immich-server
+  namespace: immich
+  labels:
+    app: immich-server
+    component: server
+    service-type: internal
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "3001"
+spec:
+  type: ClusterIP
+  ports:
+  - port: 3001
+    targetPort: 2283
+    protocol: TCP
+    name: http
+  selector:
+    app: immich-server
+---
+# Headless Service for StatefulSet-like behavior and service discovery
+apiVersion: v1
+kind: Service
+metadata:
+  name: immich-server-headless
+  namespace: immich
+  labels:
+    app: immich-server
+    component: server
+    service-type: headless
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - port: 3001
+    targetPort: 2283
+    protocol: TCP
+    name: http
+  selector:
+    app: immich-server
+  # Enable service discovery for internal components
+  publishNotReadyAddresses: false

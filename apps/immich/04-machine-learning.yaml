@@ -1,0 +1,325 @@
+---
+# PersistentVolumeClaim for ML models storage
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: immich-ml-models-pvc
+  namespace: immich
+  labels:
+    app: immich-ml
+    component: machine-learning
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-nvme-node05
+  resources:
+    requests:
+      storage: 20Gi
+  selector:
+    matchLabels:
+      app: immich-ml
+---
+# Machine Learning Service Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: immich-ml
+  namespace: immich
+  labels:
+    app: immich-ml
+    component: machine-learning
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate # Required for persistent volumes
+  selector:
+    matchLabels:
+      app: immich-ml
+  template:
+    metadata:
+      labels:
+        app: immich-ml
+        component: machine-learning
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3003"
+        prometheus.io/path: "/metrics"
+    spec:
+      # Pin to node05 for Pi 5 performance and NVMe access
+      nodeSelector:
+        kubernetes.io/hostname: node05
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values:
+                      - node05
+      containers:
+        - name: immich-machine-learning
+          image: ghcr.io/immich-app/immich-machine-learning:v1.139.4
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3003
+              name: http
+              protocol: TCP
+
+          env:
+            # ML service configuration
+            - name: NODE_ENV
+              value: "production"
+            - name: MACHINE_LEARNING_HOST
+              value: "0.0.0.0"
+            - name: MACHINE_LEARNING_PORT
+              value: "3003"
+            - name: MACHINE_LEARNING_WORKERS
+              value: "2" # Optimized for Pi 5 4-core CPU
+            - name: MACHINE_LEARNING_WORKER_TIMEOUT
+              value: "120"
+            # Model cache configuration
+            - name: TRANSFORMERS_CACHE
+              value: "/cache"
+            - name: MACHINE_LEARNING_CACHE_FOLDER
+              value: "/cache"
+            # Performance tuning for Pi 5
+            - name: MACHINE_LEARNING_REQUEST_THREADS
+              value: "4"
+            - name: MACHINE_LEARNING_MODEL_TTL
+              value: "300" # Keep models in memory for 5 minutes
+            - name: MACHINE_LEARNING_MODEL_TTL_POLL_S
+              value: "10"
+            # Performance optimization from ConfigMap
+            - name: OMP_NUM_THREADS
+              value: "4"
+            - name: MKL_NUM_THREADS
+              value: "4"
+            - name: OPENBLAS_NUM_THREADS
+              value: "4"
+            - name: NODE_OPTIONS
+              value: "--max-old-space-size=3584"
+            - name: CUDA_VISIBLE_DEVICES
+              value: ""
+            - name: TRANSFORMERS_OFFLINE
+              value: "0"
+            - name: HF_HUB_DISABLE_TELEMETRY
+              value: "1"
+          # Resource limits optimized for Pi 5 performance
+          resources:
+            requests:
+              cpu: 1000m # 1 CPU core baseline
+              memory: 2Gi # 2GB baseline for model loading
+            limits:
+              cpu: 2000m # Up to 2 CPU cores for ML processing
+              memory: 4Gi # 4GB limit for large models and processing
+          # Volume mounts for ML models (NVMe) and media access (NFS)
+          volumeMounts:
+            - name: ml-models-cache
+              mountPath: /cache
+            - name: media-library
+              mountPath: /usr/src/app/upload/library
+              readOnly: true
+            - name: media-uploads
+              mountPath: /usr/src/app/upload/upload
+              readOnly: true
+            - name: media-thumbs
+              mountPath: /usr/src/app/upload/thumbs
+              readOnly: false # ML service may generate thumbnails
+            - name: ml-scripts
+              mountPath: /app/scripts
+              readOnly: true
+          # Health checks for ML service availability
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: 3003
+              scheme: HTTP
+            initialDelaySeconds: 60 # Allow time for model loading
+            periodSeconds: 30
+            timeoutSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /ping
+              port: 3003
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          # Startup probe for initial model loading
+          startupProbe:
+            httpGet:
+              path: /ping
+              port: 3003
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 10
+            successThreshold: 1
+            failureThreshold: 20 # Allow up to 5 minutes for startup
+      volumes:
+        # NVMe storage for ML models cache (hostPath on node05)
+        - name: ml-models-cache
+          persistentVolumeClaim:
+            claimName: immich-ml-models-pvc
+        # NFS storage for media access (read-only for library and uploads)
+        - name: media-library
+          persistentVolumeClaim:
+            claimName: immich-library-pvc
+        - name: media-uploads
+          persistentVolumeClaim:
+            claimName: immich-uploads-pvc
+        - name: media-thumbs
+          persistentVolumeClaim:
+            claimName: immich-thumbs-pvc
+        # ConfigMap volume for scripts
+        - name: ml-scripts
+          configMap:
+            name: immich-ml-config
+            items:
+              - key: health-check.sh
+                path: health-check.sh
+                mode: 0755
+              - key: model-manager.sh
+                path: model-manager.sh
+                mode: 0755
+      # Security context for proper file permissions
+      securityContext:
+        fsGroup: 1000 # immich user group
+        runAsUser: 1000 # immich user
+        runAsNonRoot: true
+      # Restart policy for ML service reliability
+      restartPolicy: Always
+---
+# Machine Learning Service for internal cluster access
+apiVersion: v1
+kind: Service
+metadata:
+  name: immich-ml
+  namespace: immich
+  labels:
+    app: immich-ml
+    component: machine-learning
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "3003"
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3003
+      targetPort: 3003
+      protocol: TCP
+      name: http
+  selector:
+    app: immich-ml
+---
+# ConfigMap for Machine Learning service configuration files
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: immich-ml-config
+  namespace: immich
+  labels:
+    app: immich-ml
+    component: machine-learning
+data:
+  # ML service configuration optimized for Pi 5 hardware
+  ml-config.json: |
+    {
+      "host": "0.0.0.0",
+      "port": 3003,
+      "workers": 2,
+      "workerTimeout": 120,
+      "requestThreads": 4,
+      "modelTtl": 300,
+      "modelTtlPollS": 10,
+      "cacheFolder": "/cache",
+      "models": {
+        "faceDetection": {
+          "enabled": true,
+          "modelName": "buffalo_l",
+          "minScore": 0.7,
+          "maxDistance": 0.5,
+          "minFaces": 3
+        },
+        "facialRecognition": {
+          "enabled": true,
+          "modelName": "buffalo_l",
+          "minScore": 0.7
+        },
+        "objectDetection": {
+          "enabled": true,
+          "modelName": "yolov8n.pt",
+          "minScore": 0.9
+        },
+        "clip": {
+          "enabled": true,
+          "modelName": "ViT-B-32::openai",
+          "modelType": "visual"
+        }
+      },
+      "performance": {
+        "cpuThreads": 4,
+        "memoryLimit": "3.5GB",
+        "batchSize": 1,
+        "enableGpu": false,
+        "optimizeForLatency": true
+      },
+      "logging": {
+        "level": "info",
+        "enableMetrics": true,
+        "enableHealthCheck": true
+      }
+    }
+  # Health check script
+  health-check.sh: |
+    #!/bin/bash
+    # Health check script for ML service
+    set -e
+
+    # Check if service is responding
+    response=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3003/ping || echo "000")
+
+    if [ "$response" = "200" ]; then
+        echo "ML service is healthy"
+        exit 0
+    else
+        echo "ML service is unhealthy (HTTP $response)"
+        exit 1
+    fi
+  # Model management script
+  model-manager.sh: |
+    #!/bin/bash
+    # Model management script for downloading and caching models
+    set -e
+
+    CACHE_DIR="/cache"
+
+    # Ensure cache directory exists
+    mkdir -p "$CACHE_DIR"
+
+    # Function to download model if not exists
+    download_model() {
+        local model_name="$1"
+        local model_path="$CACHE_DIR/$model_name"
+
+        if [ ! -d "$model_path" ]; then
+            echo "Downloading model: $model_name"
+            # Model download will be handled by the ML service automatically
+            echo "Model $model_name will be downloaded on first use"
+        else
+            echo "Model $model_name already cached"
+        fi
+    }
+
+    # Pre-cache common models
+    echo "Checking ML models cache..."
+    download_model "buffalo_l"
+    download_model "ViT-B-32"
+    download_model "yolov8n"
+
+    echo "Model management complete"

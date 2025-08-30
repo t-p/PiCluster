@@ -1,0 +1,39 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: immich
+  namespace: argocd
+  labels:
+    app: immich
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/t-p/PiCluster
+    targetRevision: main
+    path: apps/immich
+    directory:
+      recurse: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: immich
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
+  info:
+    - name: "Description"
+      value: "Immich self-hosted photo and video management deployment for PiCluster"
+    - name: "Documentation"
+      value: "https://immich.app/docs/"
