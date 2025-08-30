@@ -155,7 +155,7 @@ spec:
                       - node05
       containers:
         - name: postgres
-          image: postgres:15-alpine
+          image: pgvector/pgvector:0.8.0-pg15
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5432
