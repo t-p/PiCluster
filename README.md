@@ -325,6 +325,7 @@ This K3s cluster hosts a complete media server stack with automated content mana
 | **Homarr** | Modern Dashboard & Service Management | `http://192.168.88.126:31880` | NodePort | [Homarr README](apps/homarr/README.md) |
 | **Jellyfin** | Media Server & Streaming | `http://192.168.88.126:8096` | LoadBalancer | [Jellyfin README](apps/jellyfin/README.md) |
 | **Immich** | Self-hosted Photo & Video Management | `http://192.168.88.126:31283` | NodePort | [Immich README](apps/immich/README.md) |
+| **Database** | Shared PostgreSQL & Redis Services | Internal Only | ClusterIP | [Database README](apps/database/README.md) |
 | **Transmission** | BitTorrent Client (VPN Protected) | `http://192.168.88.162:9091` | LoadBalancer | [Transmission README](apps/transmission/README.md) |
 | **Sonarr** | TV Series Management | `http://192.168.88.162:8989` | LoadBalancer | [Sonarr README](apps/sonarr/README.md) |
 | **Radarr** | Movie Management | `http://192.168.88.162:7878` | LoadBalancer | [Radarr README](apps/radarr/README.md) |
@@ -371,6 +372,22 @@ This K3s cluster hosts a complete media server stack with automated content mana
 - **Ports**: 31283 (HTTP Web Interface)
 - **Mobile Apps**: iOS and Android with automatic backup
 - **More info**: [apps/immich/README.md](apps/immich/README.md)
+
+#### 🗄️ Database - Shared Database Services
+- **Namespace**: `database`
+- **Description**: Centralized PostgreSQL and Redis instances for shared use across applications
+- **Features**:
+  - PostgreSQL 15 with multi-database support
+  - Redis 7 with multiple database namespaces
+  - NVMe storage optimization on node05
+  - Connection pooling ready
+  - Monitoring and health checks enabled
+- **Storage**:
+  - PostgreSQL: 100GB NVMe storage on node05
+  - Redis: 10GB NVMe storage on node05
+- **Usage**: Internal cluster services only
+- **Applications**: Used by Immich and future applications
+- **More info**: [apps/database/README.md](apps/database/README.md)
 
 #### 🔒 Transmission - Torrent Client (VPN Protected)
 - **Namespace**: `downloads`

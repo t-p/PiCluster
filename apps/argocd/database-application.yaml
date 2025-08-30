@@ -1,0 +1,39 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: database
+  namespace: argocd
+  labels:
+    app: database
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/t-p/PiCluster
+    targetRevision: main
+    path: apps/database
+    directory:
+      recurse: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: database
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
+  info:
+    - name: "Description"
+      value: "Shared database services (PostgreSQL + Redis) for PiCluster applications"
+    - name: "Documentation"
+      value: "Centralized database namespace providing PostgreSQL and Redis for multiple apps"
