@@ -60,13 +60,11 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: postgres-secret
-                  namespace: database
                   key: username
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: postgres-secret
-                  namespace: database
                   key: password
 
             # Redis connection configuration
