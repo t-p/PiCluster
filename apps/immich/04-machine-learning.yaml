@@ -1,24 +1,4 @@
 ---
-# PersistentVolumeClaim for ML models storage
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: immich-ml-models-pvc
-  namespace: immich
-  labels:
-    app: immich-ml
-    component: machine-learning
-spec:
-  accessModes:
-    - ReadWriteOnce
-  storageClassName: local-nvme-node05
-  resources:
-    requests:
-      storage: 20Gi
-  selector:
-    matchLabels:
-      app: immich-ml
----
 # Machine Learning Service Deployment
 apiVersion: apps/v1
 kind: Deployment
