@@ -6,15 +6,6 @@ metadata:
   labels:
     name: immich
 ---
-# StorageClass for local NVMe storage on node05
-apiVersion: storage.k8s.io/v1
-kind: StorageClass
-metadata:
-  name: local-nvme-node05
-provisioner: kubernetes.io/no-provisioner
-volumeBindingMode: WaitForFirstConsumer
-reclaimPolicy: Retain
----
 # PersistentVolume for ML models on node05 NVMe
 apiVersion: v1
 kind: PersistentVolume

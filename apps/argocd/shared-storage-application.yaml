@@ -32,6 +32,6 @@ spec:
   revisionHistoryLimit: 10
   info:
     - name: "Description"
-      value: "Manages shared NFS storage (shared-downloads-pvc) for all media apps"
+      value: "Manages shared storage resources including StorageClasses and shared NFS storage (shared-downloads-pvc) for all media apps"
     - name: "Documentation"
       value: "https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner"

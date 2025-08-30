@@ -7,16 +7,6 @@ metadata:
   labels:
     name: database
 ---
-# Storage Class for NVMe storage on node05 (reused from existing)
-apiVersion: storage.k8s.io/v1
-kind: StorageClass
-metadata:
-  name: local-nvme-node05
-provisioner: kubernetes.io/no-provisioner
-volumeBindingMode: WaitForFirstConsumer
-allowVolumeExpansion: false
-reclaimPolicy: Retain
----
 # PostgreSQL Persistent Volume
 apiVersion: v1
 kind: PersistentVolume
