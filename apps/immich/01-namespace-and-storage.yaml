@@ -15,58 +15,6 @@ provisioner: kubernetes.io/no-provisioner
 volumeBindingMode: WaitForFirstConsumer
 reclaimPolicy: Retain
 ---
-# PersistentVolume for PostgreSQL on node05 NVMe
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: immich-postgres-pv
-  labels:
-    app: immich-postgres
-spec:
-  capacity:
-    storage: 100Gi
-  accessModes:
-  - ReadWriteOnce
-  persistentVolumeReclaimPolicy: Retain
-  storageClassName: local-nvme-node05
-  hostPath:
-    path: /opt/immich/postgres
-    type: DirectoryOrCreate
-  nodeAffinity:
-    required:
-      nodeSelectorTerms:
-      - matchExpressions:
-        - key: kubernetes.io/hostname
-          operator: In
-          values:
-          - node05
----
-# PersistentVolume for Redis on node05 NVMe
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: immich-redis-pv
-  labels:
-    app: immich-redis
-spec:
-  capacity:
-    storage: 10Gi
-  accessModes:
-  - ReadWriteOnce
-  persistentVolumeReclaimPolicy: Retain
-  storageClassName: local-nvme-node05
-  hostPath:
-    path: /opt/immich/redis
-    type: DirectoryOrCreate
-  nodeAffinity:
-    required:
-      nodeSelectorTerms:
-      - matchExpressions:
-        - key: kubernetes.io/hostname
-          operator: In
-          values:
-          - node05
----
 # PersistentVolume for ML models on node05 NVMe
 apiVersion: v1
 kind: PersistentVolume
@@ -78,7 +26,7 @@ spec:
   capacity:
     storage: 20Gi
   accessModes:
-  - ReadWriteOnce
+    - ReadWriteOnce
   persistentVolumeReclaimPolicy: Retain
   storageClassName: local-nvme-node05
   hostPath:
@@ -87,11 +35,31 @@ spec:
   nodeAffinity:
     required:
       nodeSelectorTerms:
-      - matchExpressions:
-        - key: kubernetes.io/hostname
-          operator: In
-          values:
-          - node05
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - node05
+---
+# PVC for ML models on node05 NVMe
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: immich-ml-models-pvc
+  namespace: immich
+  labels:
+    app: immich-ml
+    component: ml-models
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-nvme-node05
+  resources:
+    requests:
+      storage: 20Gi
+  selector:
+    matchLabels:
+      app: immich-ml
 ---
 # PVC for photo/video library storage (NFS)
 apiVersion: v1
@@ -104,7 +72,7 @@ metadata:
     component: library
 spec:
   accessModes:
-  - ReadWriteMany
+    - ReadWriteMany
   storageClassName: nfs
   resources:
     requests:
@@ -121,7 +89,7 @@ metadata:
     component: uploads
 spec:
   accessModes:
-  - ReadWriteMany
+    - ReadWriteMany
   storageClassName: nfs
   resources:
     requests:
@@ -138,7 +106,7 @@ metadata:
     component: thumbs
 spec:
   accessModes:
-  - ReadWriteMany
+    - ReadWriteMany
   storageClassName: nfs
   resources:
     requests:
@@ -155,7 +123,7 @@ metadata:
     component: backups
 spec:
   accessModes:
-  - ReadWriteMany
+    - ReadWriteMany
   storageClassName: nfs
   resources:
     requests:
