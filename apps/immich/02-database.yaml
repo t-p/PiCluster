@@ -57,21 +57,7 @@ spec:
                     operator: In
                     values:
                       - node05
-      # Init container to fix permissions
-      initContainers:
-        - name: fix-permissions
-          image: busybox:1.35
-          command:
-            - sh
-            - -c
-            - |
-              chown -R 999:999 /var/lib/postgresql/data
-              chmod -R 755 /var/lib/postgresql/data
-          volumeMounts:
-            - name: postgres-data
-              mountPath: /var/lib/postgresql/data
-          securityContext:
-            runAsUser: 0
+
       containers:
         - name: postgres
           image: pgvector/pgvector:0.8.0-pg15
