@@ -332,7 +332,7 @@ This K3s cluster hosts a complete media server stack with automated content mana
 | **Prowlarr** | Indexer Manager (Jackett Replacement) | `http://192.168.88.162:9117` | LoadBalancer | [Prowlarr README](apps/prowlarr/README.md) |
 | **Pi-hole** | Network-wide DNS Ad Blocker | `http://192.168.88.167:31080/admin/` | NodePort | [Pi-hole README](apps/pihole/README.md) |
 | **Cloudflare Tunnel** | Secure Remote Access | External via Cloudflare | Tunnel | [Cloudflare Tunnel README](apps/cloudflare-tunnel/README.md) |
-| **K8s Dashboard** | Kubernetes Management UI | `https://192.168.88.163:30443` | NodePort | [Kubernetes Dashboard README](apps/kubernetes-dashboard/README.md) |
+
 | **Argo CD** | GitOps Kubernetes Management | `http://192.168.88.163:30080` | NodePort | [Argo CD README](apps/argocd/README.md) |
 | **Grafana** | Monitoring Dashboards | `http://192.168.88.126:30300` | NodePort | [Monitoring README](apps/monitoring/README.md) |
 | **Prometheus** | Metrics Collection | `http://192.168.88.126:30900` | NodePort | [Monitoring README](apps/monitoring/README.md) |
@@ -470,15 +470,7 @@ This K3s cluster hosts a complete media server stack with automated content mana
 - **Access**: External via configured Cloudflare domains
 - **More info**: [apps/cloudflare-tunnel/README.md](apps/cloudflare-tunnel/README.md)
 
-#### ⚙️ Kubernetes Dashboard
-- **Namespace**: `kubernetes-dashboard`
-- **Description**: Web-based Kubernetes cluster management interface
-- **Features**:
-  - Resource monitoring and management
-  - Pod logs and terminal access
-  - Deployment scaling and updates
-  - Service and ingress management
-- **More info**: [apps/kubernetes-dashboard/README.md](apps/kubernetes-dashboard/README.md)
+
 
 #### 🚀 Argo CD - GitOps Kubernetes Management
 - **Namespace**: `argocd`
@@ -565,7 +557,7 @@ kubectl apply -f apps/cloudflare-tunnel/
 
 # Deploy monitoring and management
 kubectl apply -f apps/monitoring/
-kubectl apply -f apps/kubernetes-dashboard/
+
 kubectl apply -f apps/argocd/
 ```
 
