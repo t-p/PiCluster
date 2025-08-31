@@ -19,7 +19,7 @@ spec:
         fsGroup: 1000
       containers:
         - name: gluetun
-          image: qmcgaw/gluetun:v3.37.0
+          image: qmcgaw/gluetun:v3.40.0
           securityContext:
             capabilities:
               add: [NET_ADMIN, SYS_MODULE]
