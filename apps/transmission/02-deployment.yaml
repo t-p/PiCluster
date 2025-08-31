@@ -19,7 +19,7 @@ spec:
         fsGroup: 1000
       containers:
         - name: gluetun
-          image: qmcgaw/gluetun:latest
+          image: qmcgaw/gluetun:v3.37.0
           securityContext:
             capabilities:
               add: [NET_ADMIN, SYS_MODULE]
@@ -82,7 +82,7 @@ spec:
             periodSeconds: 30
             timeoutSeconds: 5
         - name: transmission
-          image: lscr.io/linuxserver/transmission:latest
+          image: lscr.io/linuxserver/transmission:4.0.5
           env:
             - name: PUID
               value: "1000"
