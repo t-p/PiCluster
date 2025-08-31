@@ -7,7 +7,7 @@ This project provides manifests and configuration for running Jellyfin, Sonarr, 
 ---
 
 <p align="center">
-  <img src="images/turing-pi-board.jpg" alt="Turing Pi Board" width="450"/>
+  <img src="images/pi-cluster.gif" alt="Raspberry Pi Rack" width="450"/>
 </p>
 
 ## 📑 Index
