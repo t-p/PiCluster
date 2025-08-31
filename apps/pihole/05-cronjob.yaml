@@ -23,7 +23,7 @@ spec:
         spec:
           containers:
             - name: gravity-update
-              image: pihole/pihole:latest
+              image: pihole/pihole:2025.08.0
               command:
                 - /bin/sh
                 - -c
@@ -56,7 +56,7 @@ metadata:
     app: pihole
     component: log-cleanup
 spec:
-  schedule: "0 3 * * *"  # Run at 3 AM daily (1 hour after gravity update)
+  schedule: "0 3 * * *" # Run at 3 AM daily (1 hour after gravity update)
   concurrencyPolicy: Forbid
   suspend: false
   successfulJobsHistoryLimit: 3
@@ -77,11 +77,11 @@ spec:
                 - -c
                 - |
                   echo "Starting Pi-hole log maintenance..."
-                  
+
                   # Check if scripts are mounted
                   echo "Checking mounted files:"
                   ls -la /usr/local/bin/
-                  
+
                   # Run log cleanup script
                   echo "Running log cleanup..."
                   if [ -f /usr/local/bin/log-cleanup.sh ]; then
@@ -89,7 +89,7 @@ spec:
                   else
                     echo "log-cleanup.sh not found"
                   fi
-                  
+
                   # Run log monitoring and rotation
                   echo "Running log monitoring..."
                   if [ -f /usr/local/bin/log-monitor.sh ]; then
@@ -97,7 +97,7 @@ spec:
                   else
                     echo "log-monitor.sh not found"
                   fi
-                  
+
                   echo "Log maintenance completed"
               volumeMounts:
                 - name: pihole-config-storage
