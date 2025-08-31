@@ -19,7 +19,7 @@ spec:
         fsGroup: 1000
       containers:
         - name: radarr
-          image: linuxserver/radarr:latest
+          image: linuxserver/radarr:5.26.2
           ports:
             - containerPort: 7878
               name: http
