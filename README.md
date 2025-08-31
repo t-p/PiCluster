@@ -5,7 +5,10 @@ PiCluster is a fully automated, self-hosted Kubernetes media server stack design
 This project provides manifests and configuration for running Jellyfin, Sonarr, Radarr, Transmission (with VPN), Prowlarr, Pi-hole DNS, Cloudflare Tunnel, and a modern dashboard—all orchestrated by K3s with GitOps via ArgoCD and backed by shared NFS storage. The hybrid architecture uses Compute Module 4s for worker nodes and a Raspberry Pi 5 for the control plane, providing optimal performance and reliability. PiCluster is ideal for homelab enthusiasts, edge computing, and anyone seeking a robust, private alternative to cloud-based media solutions.
 
 ---
-![Raspberry Pi Rack](images/pi-cluster.gif)
+
+<p align="center">
+  <img src="images/pi-cluster.gif" alt="Raspberry Pi Rack" width="450" autoplay loop muted/>
+</p>
 
 ## 📑 Index
 
