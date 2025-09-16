@@ -34,7 +34,7 @@ metadata:
     app: pihole
     component: web-service
 spec:
-  type: NodePort
+  type: LoadBalancer
   selector:
     app: pihole
     component: dns-server
