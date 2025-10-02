@@ -23,7 +23,7 @@ spec:
         kubernetes.io/hostname: node05
       containers:
         - name: homarr
-          image: ghcr.io/homarr-labs/homarr:v1.38.0
+          image: ghcr.io/homarr-labs/homarr:v1.39.0
           ports:
             - name: http
               containerPort: 3000
