@@ -1,0 +1,243 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: n8n
+  namespace: automation
+  labels:
+    app.kubernetes.io/name: n8n
+    app.kubernetes.io/instance: n8n
+    app.kubernetes.io/component: workflow-automation
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate # Required for persistent volumes
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: n8n
+      app.kubernetes.io/instance: n8n
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: n8n
+        app.kubernetes.io/instance: n8n
+        app.kubernetes.io/component: workflow-automation
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "5678"
+        prometheus.io/path: "/metrics"
+    spec:
+      # Pin to node05 for database connectivity and performance
+      nodeSelector:
+        kubernetes.io/hostname: node05
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values:
+                      - node05
+      containers:
+        - name: n8n
+          image: n8nio/n8n:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 5678
+              protocol: TCP
+          env:
+            # Database configuration
+            - name: DB_TYPE
+              value: "postgresdb"
+            - name: DB_POSTGRESDB_HOST
+              value: "postgres.database.svc.cluster.local"
+            - name: DB_POSTGRESDB_PORT
+              value: "5432"
+            - name: DB_POSTGRESDB_DATABASE
+              value: "n8n"
+            - name: DB_POSTGRESDB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: username
+            - name: DB_POSTGRESDB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: password
+            # n8n configuration
+            - name: N8N_HOST
+              value: "192.168.88.126"
+            - name: N8N_PORT
+              value: "5678"
+            - name: N8N_PROTOCOL
+              value: "http"
+            - name: WEBHOOK_URL
+              value: "http://192.168.88.126:32000"
+            - name: GENERIC_TIMEZONE
+              value: "UTC"
+            - name: N8N_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: n8n-secret
+                  key: encryption-key
+            # Performance and scaling
+            - name: EXECUTIONS_PROCESS
+              value: "main"
+            - name: EXECUTIONS_MODE
+              value: "regular"
+            - name: QUEUE_BULL_REDIS_HOST
+              value: "redis.database.svc.cluster.local"
+            - name: QUEUE_BULL_REDIS_PORT
+              value: "6379"
+            - name: QUEUE_BULL_REDIS_DB
+              value: "2"
+            # Security
+            - name: N8N_BASIC_AUTH_ACTIVE
+              value: "true"
+            - name: N8N_BASIC_AUTH_USER
+              value: "admin"
+            - name: N8N_BASIC_AUTH_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: n8n-secret
+                  key: admin-password
+            - name: N8N_SECURE_COOKIE
+              value: "false"
+            # Logging
+            - name: N8N_LOG_LEVEL
+              value: "info"
+            - name: N8N_LOG_OUTPUT
+              value: "console"
+            # Editor configuration
+            - name: N8N_EDITOR_BASE_URL
+              value: "http://192.168.88.126:32000"
+            # Workflow execution
+            - name: EXECUTIONS_DATA_SAVE_ON_ERROR
+              value: "all"
+            - name: EXECUTIONS_DATA_SAVE_ON_SUCCESS
+              value: "all"
+            - name: EXECUTIONS_DATA_MAX_AGE
+              value: "336" # 14 days
+            # AWS Configuration
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: n8n-aws-secret
+                  key: aws-access-key-id
+                  optional: true
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: n8n-aws-secret
+                  key: aws-secret-access-key
+                  optional: true
+            - name: AWS_DEFAULT_REGION
+              valueFrom:
+                secretKeyRef:
+                  name: n8n-aws-secret
+                  key: aws-region
+                  optional: true
+          # Volume mounts for persistent data
+          volumeMounts:
+            - name: n8n-data
+              mountPath: /home/node/.n8n
+          # Resource limits optimized for workflow automation
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+          # Health checks for n8n service
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 5678
+              scheme: HTTP
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 5678
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          # Startup probe for initial n8n setup
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: 5678
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 12
+      volumes:
+        - name: n8n-data
+          persistentVolumeClaim:
+            claimName: n8n-data
+      # Security context for proper file permissions
+      securityContext:
+        fsGroup: 1000
+        runAsUser: 1000
+        runAsNonRoot: true
+      # Restart policy for service reliability
+      restartPolicy: Always
+
+---
+# n8n Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: n8n
+  namespace: automation
+  labels:
+    app.kubernetes.io/name: n8n
+    app.kubernetes.io/instance: n8n
+    app.kubernetes.io/component: workflow-automation
+spec:
+  type: NodePort
+  ports:
+    - name: http
+      port: 5678
+      protocol: TCP
+      targetPort: 5678
+      nodePort: 32000
+  selector:
+    app.kubernetes.io/name: n8n
+    app.kubernetes.io/instance: n8n
+
+---
+# n8n Webhook Service (for external webhook access)
+apiVersion: v1
+kind: Service
+metadata:
+  name: n8n-webhook
+  namespace: automation
+  labels:
+    app.kubernetes.io/name: n8n
+    app.kubernetes.io/instance: n8n
+    app.kubernetes.io/component: webhook
+spec:
+  type: NodePort
+  ports:
+    - name: webhook
+      port: 5678
+      protocol: TCP
+      targetPort: 5678
+      nodePort: 32001
+  selector:
+    app.kubernetes.io/name: n8n
+    app.kubernetes.io/instance: n8n

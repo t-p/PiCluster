@@ -1,0 +1,63 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: automation
+  labels:
+    app.kubernetes.io/name: n8n
+    app.kubernetes.io/part-of: automation
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: n8n-data
+  namespace: automation
+  labels:
+    app.kubernetes.io/name: n8n
+    app.kubernetes.io/component: storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: nfs
+  resources:
+    requests:
+      storage: 2Gi
+---
+# Secret for n8n configuration
+# Note: This secret must be created manually for security
+# kubectl create secret generic n8n-secret -n automation \
+#   --from-literal=encryption-key="$(openssl rand -base64 32)" \
+#   --from-literal=webhook-url="http://192.168.88.126:32000" \
+#   --from-literal=db-password="your-postgres-password"
+apiVersion: v1
+kind: Secret
+metadata:
+  name: n8n-secret
+  namespace: automation
+  labels:
+    app.kubernetes.io/name: n8n
+    app.kubernetes.io/component: config
+type: Opaque
+# data:
+#   encryption-key: <base64-encoded-encryption-key>
+#   webhook-url: <base64-encoded-webhook-url>
+#   db-password: <base64-encoded-db-password>
+---
+# AWS Credentials Secret for n8n
+# Note: This secret must be created manually for security
+# kubectl create secret generic n8n-aws-secret -n automation \
+#   --from-literal=aws-access-key-id="your-aws-access-key" \
+#   --from-literal=aws-secret-access-key="your-aws-secret-key" \
+#   --from-literal=aws-region="us-east-1"
+apiVersion: v1
+kind: Secret
+metadata:
+  name: n8n-aws-secret
+  namespace: automation
+  labels:
+    app.kubernetes.io/name: n8n
+    app.kubernetes.io/component: aws-config
+type: Opaque
+# data:
+#   aws-access-key-id: <base64-encoded-aws-access-key>
+#   aws-secret-access-key: <base64-encoded-aws-secret-key>
+#   aws-region: <base64-encoded-aws-region>
