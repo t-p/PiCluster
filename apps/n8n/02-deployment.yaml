@@ -69,13 +69,16 @@ spec:
                   key: password
             # n8n configuration
             - name: N8N_HOST
-              value: "192.168.88.126"
+              value: "0.0.0.0"
             - name: N8N_PORT
               value: "5678"
             - name: N8N_PROTOCOL
               value: "http"
             - name: WEBHOOK_URL
-              value: "http://192.168.88.126:32000"
+              valueFrom:
+                secretKeyRef:
+                  name: n8n-secret
+                  key: webhook-url
             - name: GENERIC_TIMEZONE
               value: "UTC"
             - name: N8N_ENCRYPTION_KEY
@@ -94,16 +97,9 @@ spec:
               value: "6379"
             - name: QUEUE_BULL_REDIS_DB
               value: "2"
-            # Security
+            # Security - Using n8n's built-in user management
             - name: N8N_BASIC_AUTH_ACTIVE
-              value: "true"
-            - name: N8N_BASIC_AUTH_USER
-              value: "admin"
-            - name: N8N_BASIC_AUTH_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: n8n-secret
-                  key: admin-password
+              value: "false"
             - name: N8N_SECURE_COOKIE
               value: "false"
             # Logging
@@ -113,7 +109,10 @@ spec:
               value: "console"
             # Editor configuration
             - name: N8N_EDITOR_BASE_URL
-              value: "http://192.168.88.126:32000"
+              valueFrom:
+                secretKeyRef:
+                  name: n8n-secret
+                  key: editor-base-url
             # Workflow execution
             - name: EXECUTIONS_DATA_SAVE_ON_ERROR
               value: "all"
