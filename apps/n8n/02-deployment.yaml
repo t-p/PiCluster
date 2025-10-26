@@ -10,6 +10,7 @@ metadata:
     app.kubernetes.io/component: workflow-automation
 spec:
   replicas: 1
+  revisionHistoryLimit: 3 # Keep max 3 old ReplicaSets for rollback
   strategy:
     type: Recreate # Required for persistent volumes
   selector:
