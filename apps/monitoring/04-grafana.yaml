@@ -55,12 +55,32 @@ spec:
               name: web
               protocol: TCP
           env:
+            # Security settings
             - name: GF_SECURITY_ADMIN_USER
               value: admin
             - name: GF_SECURITY_ADMIN_PASSWORD
               value: admin123
             - name: GF_USERS_ALLOW_SIGN_UP
               value: "false"
+            # PostgreSQL database configuration
+            - name: GF_DATABASE_TYPE
+              value: postgres
+            - name: GF_DATABASE_HOST
+              value: postgres.database.svc.cluster.local:5432
+            - name: GF_DATABASE_NAME
+              value: grafana
+            - name: GF_DATABASE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: username
+            - name: GF_DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: password
+            - name: GF_DATABASE_SSL_MODE
+              value: disable
           volumeMounts:
             - name: grafana-storage
               mountPath: /var/lib/grafana
