@@ -334,8 +334,9 @@ This K3s cluster hosts a complete media server stack with automated content mana
 | **Cloudflare Tunnel** | Secure Remote Access | External via Cloudflare | Tunnel | [Cloudflare Tunnel README](apps/cloudflare-tunnel/README.md) |
 
 | **Argo CD** | GitOps Kubernetes Management | `http://192.168.88.163:30080` | NodePort | [Argo CD README](apps/argocd/README.md) |
-| **Grafana** | Monitoring Dashboards | `http://192.168.88.126:30300` | NodePort | [Monitoring README](apps/monitoring/README.md) |
+| **Grafana** | Monitoring Dashboards (PostgreSQL Backend) | `http://192.168.88.126:30300` | NodePort | [Monitoring README](apps/monitoring/README.md) |
 | **Prometheus** | Metrics Collection | `http://192.168.88.126:30900` | NodePort | [Monitoring README](apps/monitoring/README.md) |
+| **n8n** | Workflow Automation & Integration | `http://192.168.88.126:32000` | NodePort | [n8n README](apps/n8n/README.md) |
 
 ### Detailed Application Information
 
@@ -377,16 +378,19 @@ This K3s cluster hosts a complete media server stack with automated content mana
 - **Namespace**: `database`
 - **Description**: Centralized PostgreSQL and Redis instances for shared use across applications
 - **Features**:
-  - PostgreSQL 15 with multi-database support
+  - PostgreSQL 15 with pgvector extension for AI/ML workloads
+  - Multi-database support (immich, n8n, grafana)
   - Redis 7 with multiple database namespaces
   - NVMe storage optimization on node05
+  - Prometheus metrics via postgres_exporter
   - Connection pooling ready
-  - Monitoring and health checks enabled
+  - Automated health checks and monitoring
 - **Storage**:
   - PostgreSQL: 100GB NVMe storage on node05
   - Redis: 10GB NVMe storage on node05
 - **Usage**: Internal cluster services only
-- **Applications**: Used by Immich and future applications
+- **Applications**: Used by Immich, n8n, Grafana
+- **Monitoring**: Exposed metrics on port 9187 for Prometheus
 - **More info**: [apps/database/README.md](apps/database/README.md)
 
 #### 🔒 Transmission - Torrent Client (VPN Protected)
@@ -470,6 +474,23 @@ This K3s cluster hosts a complete media server stack with automated content mana
 - **Access**: External via configured Cloudflare domains
 - **More info**: [apps/cloudflare-tunnel/README.md](apps/cloudflare-tunnel/README.md)
 
+#### 🔄 n8n - Workflow Automation
+- **Namespace**: `automation`
+- **Description**: Self-hosted workflow automation platform for connecting apps and services
+- **Features**:
+  - Visual workflow builder with 400+ integrations
+  - PostgreSQL backend for workflow storage
+  - Redis queue for reliable execution
+  - Webhook support for external triggers
+  - AWS integration for cloud services
+  - Custom JavaScript/Python code execution
+- **Storage**:
+  - Database: PostgreSQL (shared database service)
+  - Queue: Redis database 2
+  - Workflows: `/mnt/storage/n8n/` (persistent data)
+- **Access**: `http://192.168.88.126:32000`
+- **More info**: [apps/n8n/README.md](apps/n8n/README.md)
+
 
 
 #### 🚀 Argo CD - GitOps Kubernetes Management
@@ -488,21 +509,23 @@ This K3s cluster hosts a complete media server stack with automated content mana
 - **Description**: Complete monitoring solution for cluster and application metrics
 - **Components**:
   - **Prometheus**: Time-series database collecting metrics from all cluster nodes and applications
-  - **Grafana**: Visualization platform for creating dashboards and alerting
+  - **Grafana**: Visualization platform with PostgreSQL backend for dashboards and alerting
   - **Node Exporter**: System metrics collector running on all nodes (CPU, memory, disk, network)
-  - **kube-state-metrics**: Kubernetes cluster state metrics
+  - **postgres_exporter**: PostgreSQL metrics exporter for database monitoring
 - **Features**:
   - Real-time cluster and application monitoring
   - Persistent storage for historical data (15-day retention)
-  - Auto-discovery of Kubernetes services
+  - Auto-discovery of Kubernetes services via annotations
   - Pre-configured Prometheus datasource in Grafana
-  - Clean dashboard installation for custom monitoring setup
+  - PostgreSQL database monitoring with detailed metrics
+  - Grafana uses PostgreSQL for improved reliability (no SQLite locking issues)
 - **Storage**:
   - Prometheus data: `/mnt/storage/monitoring/prometheus` (20Gi)
   - Grafana config: `/mnt/storage/monitoring/grafana` (1Gi)
+  - Grafana database: PostgreSQL (shared database service)
 - **Access**:
-  - Grafana: `http://192.168.88.163:30300`
-  - Prometheus: `http://192.168.88.163:30900`
+  - Grafana: `http://192.168.88.126:30300`
+  - Prometheus: `http://192.168.88.126:30900`
 - **More info**: [apps/monitoring/README.md](apps/monitoring/README.md)
 
 ### Storage Architecture
@@ -545,8 +568,12 @@ For more details on storage and shared PVCs, see [downloads-storage/README.md](a
 # Deploy core infrastructure
 kubectl apply -f apps/shared-storage/
 
+# Deploy database services first (required by other apps)
+kubectl apply -f apps/database/
+
 # Deploy applications (order matters for dependencies)
 kubectl apply -f apps/jellyfin/
+kubectl apply -f apps/immich/
 kubectl apply -f apps/prowlarr/
 kubectl apply -f apps/transmission/
 kubectl apply -f apps/sonarr/
@@ -554,10 +581,10 @@ kubectl apply -f apps/radarr/
 kubectl apply -f apps/homarr/
 kubectl apply -f apps/pihole/
 kubectl apply -f apps/cloudflare-tunnel/
+kubectl apply -f apps/n8n/
 
 # Deploy monitoring and management
 kubectl apply -f apps/monitoring/
-
 kubectl apply -f apps/argocd/
 ```
 
