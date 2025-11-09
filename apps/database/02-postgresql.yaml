@@ -138,7 +138,7 @@ spec:
         component: database
       annotations:
         prometheus.io/scrape: "true"
-        prometheus.io/port: "5432"
+        prometheus.io/port: "9187"
         prometheus.io/path: "/metrics"
     spec:
       # Pin to node05 for NVMe performance
@@ -234,6 +234,46 @@ spec:
             timeoutSeconds: 5
             successThreshold: 1
             failureThreshold: 30
+        # PostgreSQL Exporter sidecar for Prometheus metrics
+        - name: postgres-exporter
+          image: prometheuscommunity/postgres-exporter:v0.15.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 9187
+              name: metrics
+              protocol: TCP
+          env:
+            - name: DATA_SOURCE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: username
+            - name: DATA_SOURCE_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: password
+            - name: DATA_SOURCE_URI
+              value: "localhost:5432/postgres?sslmode=disable"
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 9187
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 9187
+            initialDelaySeconds: 5
+            periodSeconds: 5
       volumes:
         - name: postgres-data
           persistentVolumeClaim:
