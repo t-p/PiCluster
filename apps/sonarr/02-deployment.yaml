@@ -61,6 +61,7 @@ spec:
               port: 8989
             initialDelaySeconds: 30
             periodSeconds: 10
+            failureThreshold: 3
       volumes:
         - name: sonarr-config
           persistentVolumeClaim:
