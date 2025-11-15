@@ -99,6 +99,8 @@ spec:
       labels:
         app: prometheus
     spec:
+      nodeSelector:
+        kubernetes.io/hostname: node04
       serviceAccountName: prometheus
       containers:
         - name: prometheus
