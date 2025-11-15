@@ -62,6 +62,7 @@ spec:
           persistentVolumeClaim:
             claimName: prowlarr-config-pvc
       nodeSelector:
+        kubernetes.io/hostname: node02
         node-role.kubernetes.io/worker: worker
       tolerations:
         - key: "arm"
