@@ -368,14 +368,13 @@ This K3s cluster hosts a complete media server stack with automated content mana
 | **Transmission** | BitTorrent Client (VPN Protected) | `http://192.168.88.162:9091` | LoadBalancer | [Transmission README](apps/transmission/README.md) |
 | **Sonarr** | TV Series Management | `http://192.168.88.162:8989` | LoadBalancer | [Sonarr README](apps/sonarr/README.md) |
 | **Radarr** | Movie Management | `http://192.168.88.162:7878` | LoadBalancer | [Radarr README](apps/radarr/README.md) |
-| **Prowlarr** | Indexer Manager (Jackett Replacement) | `http://192.168.88.162:9117` | LoadBalancer | [Prowlarr README](apps/prowlarr/README.md) |
+| **Prowlarr** | Indexer Manager (Jackett Replacement) | `http://192.168.88.162:9117` | LoadBalancer | - |
 | **Pi-hole** | Network-wide DNS Ad Blocker | `http://192.168.88.167:31080/admin/` | NodePort | [Pi-hole README](apps/pihole/README.md) |
 | **Cloudflare Tunnel** | Secure Remote Access | External via Cloudflare | Tunnel | [Cloudflare Tunnel README](apps/cloudflare-tunnel/README.md) |
-
 | **Argo CD** | GitOps Kubernetes Management | `http://192.168.88.163:30080` | NodePort | [Argo CD README](apps/argocd/README.md) |
 | **Grafana** | Monitoring Dashboards (PostgreSQL Backend) | `http://192.168.88.126:30300` | NodePort | [Monitoring README](apps/monitoring/README.md) |
 | **Prometheus** | Metrics Collection | `http://192.168.88.126:30900` | NodePort | [Monitoring README](apps/monitoring/README.md) |
-| **n8n** | Workflow Automation & Integration | `http://192.168.88.126:32000` | NodePort | [n8n README](apps/n8n/README.md) |
+| **n8n** | Workflow Automation & Integration | `http://192.168.88.126:32000` | NodePort | - |
 
 ### Detailed Application Information
 
@@ -589,7 +588,7 @@ The media server uses NFS-based persistent storage with the following structure:
     └── music/             # Music library (manual/future automation)
 ```
 
-For more details on storage and shared PVCs, see [downloads-storage/README.md](apps/downloads-storage/README.md).
+For details on NFS setup, the provisioner, and how to create PVCs, see the [Storage Configuration (NFS)](#storage-configuration-nfs) section.
 
 ### Network Configuration
 
