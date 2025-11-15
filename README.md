@@ -250,8 +250,16 @@ node05   Ready    control-plane,master   5m    v1.32.6+k3s1   192.168.88.126   <
 ```
 ## Storage Configuration (NFS)
 
+### Overview
+The cluster uses NFS for shared persistent storage across all nodes. Node03 (192.168.88.163) serves as the NFS server, and the NFS Subdir External Provisioner automatically creates PersistentVolumes from PersistentVolumeClaims.
+
+**Storage Components:**
+- **NFS Server**: node03 (192.168.88.163) at `/mnt/storage`
+- **NFS Provisioner**: Deployed on node01 via Helm (managed by ArgoCD)
+- **Storage Class**: `nfs` (default for dynamic provisioning)
+
 ### Step 1: Install NFS Server
-On the control plane node (node05 - Raspberry Pi 5), install and configure NFS:
+On node03 (192.168.88.163), install and configure NFS:
 ```bash
 sudo apt install nfs-kernel-server -y
 ```
@@ -281,8 +289,8 @@ sudo systemctl enable nfs-kernel-server
 sudo systemctl restart nfs-kernel-server
 ```
 
-### Step 4: Install NFS Client on Worker Nodes
-On all worker nodes, install NFS client utilities:
+### Step 4: Install NFS Client on All Nodes
+On all nodes (including control plane), install NFS client utilities:
 ```bash
 sudo apt install nfs-common -y
 ```
@@ -294,6 +302,37 @@ sudo mount -t nfs 192.168.88.163:/mnt/storage /tmp/nfs-test
 ls -la /tmp/nfs-test
 sudo umount /tmp/nfs-test
 ```
+
+### Step 5: Deploy NFS Provisioner
+The NFS Subdir External Provisioner is deployed via ArgoCD and creates PersistentVolumes automatically:
+
+```bash
+# The provisioner is deployed as part of the shared-storage application
+kubectl apply -f apps/argocd/shared-storage-application.yaml
+```
+
+**Configuration** (in `apps/shared-storage/00-nfs-provisioner.yaml`):
+- **NFS Server**: 192.168.88.163 (node03)
+- **NFS Path**: `/mnt/storage`
+- **Storage Class**: `nfs`
+- **Node Selector**: Runs on node01
+
+**Usage**: Applications can request storage by creating PVCs with `storageClassName: nfs`:
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: my-app-data
+spec:
+  accessModes:
+    - ReadWriteOnce  # or ReadWriteMany for shared access
+  storageClassName: nfs
+  resources:
+    requests:
+      storage: 10Gi
+```
+
+The provisioner will automatically create a subdirectory under `/mnt/storage` and bind it to the PVC.
 
 ## Remote Access Setup
 
