@@ -1,8 +1,8 @@
 version: 2
 updates:
-  # Docker container images in Kubernetes manifests
+  # Container images in Kubernetes manifests
   - package-ecosystem: "docker"
-    directory: "/apps"
+    directory: "/apps/argocd"
     schedule:
       interval: "weekly"
       day: "saturday"
@@ -10,4 +10,147 @@ updates:
     open-pull-requests-limit: 10
     labels:
       - "dependencies"
-      - "docker"
+      - "kubernetes"
+
+  - package-ecosystem: "docker"
+    directory: "/apps/cloudflare-tunnel"
+    schedule:
+      interval: "weekly"
+      day: "saturday"
+      time: "08:00"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "kubernetes"
+
+  - package-ecosystem: "docker"
+    directory: "/apps/database"
+    schedule:
+      interval: "weekly"
+      day: "saturday"
+      time: "08:00"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "kubernetes"
+
+  - package-ecosystem: "docker"
+    directory: "/apps/homarr"
+    schedule:
+      interval: "weekly"
+      day: "saturday"
+      time: "08:00"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "kubernetes"
+
+  - package-ecosystem: "docker"
+    directory: "/apps/immich"
+    schedule:
+      interval: "weekly"
+      day: "saturday"
+      time: "08:00"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "kubernetes"
+
+  - package-ecosystem: "docker"
+    directory: "/apps/jellyfin"
+    schedule:
+      interval: "weekly"
+      day: "saturday"
+      time: "08:00"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "kubernetes"
+
+  - package-ecosystem: "docker"
+    directory: "/apps/monitoring"
+    schedule:
+      interval: "weekly"
+      day: "saturday"
+      time: "08:00"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "kubernetes"
+
+  - package-ecosystem: "docker"
+    directory: "/apps/n8n"
+    schedule:
+      interval: "weekly"
+      day: "saturday"
+      time: "08:00"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "kubernetes"
+
+  - package-ecosystem: "docker"
+    directory: "/apps/pihole"
+    schedule:
+      interval: "weekly"
+      day: "saturday"
+      time: "08:00"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "kubernetes"
+
+  - package-ecosystem: "docker"
+    directory: "/apps/prowlarr"
+    schedule:
+      interval: "weekly"
+      day: "saturday"
+      time: "08:00"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "kubernetes"
+
+  - package-ecosystem: "docker"
+    directory: "/apps/radarr"
+    schedule:
+      interval: "weekly"
+      day: "saturday"
+      time: "08:00"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "kubernetes"
+
+  - package-ecosystem: "docker"
+    directory: "/apps/shared-storage"
+    schedule:
+      interval: "weekly"
+      day: "saturday"
+      time: "08:00"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "kubernetes"
+
+  - package-ecosystem: "docker"
+    directory: "/apps/sonarr"
+    schedule:
+      interval: "weekly"
+      day: "saturday"
+      time: "08:00"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "kubernetes"
+
+  - package-ecosystem: "docker"
+    directory: "/apps/transmission"
+    schedule:
+      interval: "weekly"
+      day: "saturday"
+      time: "08:00"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "kubernetes"
