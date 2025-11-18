@@ -29,7 +29,7 @@ spec:
           effect: NoSchedule
       containers:
         - name: node-exporter
-          image: prom/node-exporter:v1.9.1
+          image: prom/node-exporter:v1.10.2
           ports:
             - containerPort: 9100
               name: metrics
