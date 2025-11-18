@@ -1,0 +1,13 @@
+version: 2
+updates:
+  # Docker container images in Kubernetes manifests
+  - package-ecosystem: "docker"
+    directory: "/apps"
+    schedule:
+      interval: "weekly"
+      day: "saturday"
+      time: "08:00"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "docker"
