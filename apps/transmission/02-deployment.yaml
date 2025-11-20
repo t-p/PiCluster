@@ -7,6 +7,8 @@ metadata:
     app: transmission-vpn
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: transmission-vpn
@@ -20,6 +22,10 @@ spec:
       containers:
         - name: gluetun
           image: qmcgaw/gluetun:v3.40.2
+          lifecycle:
+            postStart:
+              exec:
+                command: ["/bin/sh", "-c", "(ip rule del table 51820; ip -6 rule del table 51820) || true"]
           securityContext:
             capabilities:
               add: [NET_ADMIN, SYS_MODULE]
