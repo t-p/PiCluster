@@ -45,7 +45,7 @@ spec:
         app: grafana
     spec:
       nodeSelector:
-        kubernetes.io/hostname: node03
+        kubernetes.io/hostname: node05
       securityContext:
         fsGroup: 472
         runAsUser: 472
