@@ -42,7 +42,7 @@ spec:
                       - node05
       containers:
         - name: n8n
-          image: n8nio/n8n:1.120.3
+          image: n8nio/n8n:1.120.4
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
