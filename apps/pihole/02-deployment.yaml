@@ -29,7 +29,7 @@ spec:
         kubernetes.io/hostname: node01
       containers:
         - name: pihole
-          image: pihole/pihole:2025.11.0
+          image: pihole/pihole:2025.11.1
           imagePullPolicy: Always
           env:
             - name: NTP_SERVERS
