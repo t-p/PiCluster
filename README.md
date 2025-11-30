@@ -7,7 +7,7 @@ This project provides manifests and configuration for running Jellyfin, Sonarr, 
 ---
 
 <p align="center">
-  <img src="images/pi-cluster.gif" alt="Raspberry Pi Rack" width="450" autoplay loop muted/>
+  <img src="images/pi-cluster-v2.jpeg" alt="Raspberry Pi Cluster" width="600"/>
 </p>
 
 ## 📑 Index
