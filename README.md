@@ -364,6 +364,7 @@ This K3s cluster hosts a complete media server stack with automated content mana
 | **Homarr** | Modern Dashboard & Service Management | `http://192.168.88.126:31880` | NodePort | [Homarr README](apps/homarr/README.md) |
 | **Jellyfin** | Media Server & Streaming | `http://192.168.88.126:8096` | LoadBalancer | [Jellyfin README](apps/jellyfin/README.md) |
 | **Immich** | Self-hosted Photo & Video Management | `http://192.168.88.126:31283` | NodePort | [Immich README](apps/immich/README.md) |
+| **IMAP Server** | Self-hosted Email Server with S3 Sync | `picluster-email:143` (Tailscale) | LoadBalancer | [IMAP Server README](apps/imap-server/README.md) |
 | **Database** | Shared PostgreSQL & Redis Services | Internal Only | ClusterIP | [Database README](apps/database/README.md) |
 | **Transmission** | BitTorrent Client (VPN Protected) | `http://192.168.88.162:9091` | LoadBalancer | [Transmission README](apps/transmission/README.md) |
 | **Sonarr** | TV Series Management | `http://192.168.88.162:8989` | LoadBalancer | [Sonarr README](apps/sonarr/README.md) |
@@ -411,6 +412,27 @@ This K3s cluster hosts a complete media server stack with automated content mana
 - **Ports**: 31283 (HTTP Web Interface)
 - **Mobile Apps**: iOS and Android with automatic backup
 - **More info**: [apps/immich/README.md](apps/immich/README.md)
+
+#### 📧 IMAP Server - Self-hosted Email Server
+- **Namespace**: `email`
+- **Description**: Self-hosted IMAP email server with automated S3 email sync and VPN access
+- **Features**:
+  - Dovecot IMAP server for secure email access
+  - Automated S3 to Maildir email synchronization every 5 minutes
+  - Tailscale VPN integration for secure remote access
+  - AWS SES integration for incoming email processing
+  - Maildir format storage with proper permissions
+  - State tracking to prevent duplicate email downloads
+- **Storage**:
+  - Config: Dovecot configuration via ConfigMap
+  - Email Data: `/mnt/storage/email/` (NFS persistent storage)
+  - State: Email sync tracking via persistent volume
+- **Access**: `picluster-email:143` via Tailscale network (IMAP protocol)
+- **Components**:
+  - Dovecot IMAP server (port 143)
+  - AWS CLI email sync CronJob (pinned to v2.15.30 for ARM compatibility)
+  - Tailscale VPN sidecar for secure remote access
+- **More info**: [apps/imap-server/README.md](apps/imap-server/README.md)
 
 #### 🗄️ Database - Shared Database Services
 - **Namespace**: `database`
