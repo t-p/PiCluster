@@ -118,7 +118,7 @@ spec:
 
         # Tailscale sidecar container for VPN access
         - name: tailscale
-          image: tailscale/tailscale:latest
+          image: tailscale/tailscale:v1.90.6
           env:
             - name: TS_AUTHKEY
               valueFrom:

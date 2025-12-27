@@ -46,6 +46,17 @@ updates:
       - "kubernetes"
 
   - package-ecosystem: "docker"
+    directory: "/apps/imap-server"
+    schedule:
+      interval: "weekly"
+      day: "saturday"
+      time: "08:00"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "kubernetes"
+
+  - package-ecosystem: "docker"
     directory: "/apps/immich"
     schedule:
       interval: "weekly"
