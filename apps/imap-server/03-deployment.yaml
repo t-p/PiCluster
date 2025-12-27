@@ -1,0 +1,175 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: imap-server
+  namespace: email
+  labels:
+    app.kubernetes.io/name: imap-server
+    app.kubernetes.io/component: mail-server
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate # Avoid multiple pods accessing same PVC
+  selector:
+    matchLabels:
+      app: imap-server
+  template:
+    metadata:
+      labels:
+        app: imap-server
+        app.kubernetes.io/name: imap-server
+        app.kubernetes.io/component: mail-server
+    spec:
+      # Security context for the pod
+      securityContext:
+        fsGroup: 5000
+      
+      # Service account for Tailscale permissions
+      serviceAccountName: tailscale
+
+      # Init container to set up directory structure
+      initContainers:
+        - name: init-directories
+          image: busybox:latest
+          env:
+            - name: EMAIL_ADDRESS
+              valueFrom:
+                secretKeyRef:
+                  name: imap-credentials
+                  key: username
+          command:
+            - sh
+            - -c
+            - |
+              # Create Maildir structure for email sync and Dovecot
+              mkdir -p /var/mail/vmail/${EMAIL_ADDRESS}/{cur,new,tmp}
+              chown -R 5000:5000 /var/mail/vmail
+              chmod -R 755 /var/mail/vmail
+          volumeMounts:
+            - name: maildir-storage
+              mountPath: /var/mail/vmail
+          securityContext:
+            runAsUser: 0 # Need root to chown
+
+      containers:
+        # Dovecot IMAP Server container
+        - name: dovecot
+          image: alpine:3.17
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              apk add --no-cache dovecot
+              dovecot -F -c /etc/dovecot/dovecot.conf
+          ports:
+            - name: imap
+              containerPort: 143
+              protocol: TCP
+
+          volumeMounts:
+            # Dovecot configuration
+            - name: dovecot-config
+              mountPath: /etc/dovecot/dovecot.conf
+              subPath: dovecot.conf
+            # Dovecot users file
+            - name: dovecot-users
+              mountPath: /etc/dovecot/users
+              subPath: users
+            # SSL certificates
+            - name: dovecot-ssl
+              mountPath: /etc/ssl/certs/dovecot
+              readOnly: true
+            # Maildir storage
+            - name: maildir-storage
+              mountPath: /var/mail/vmail
+
+          # Resource limits
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+          # Liveness probe
+          livenessProbe:
+            tcpSocket:
+              port: 143
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          # Readiness probe
+          readinessProbe:
+            tcpSocket:
+              port: 143
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 2
+
+          # Security context
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+            allowPrivilegeEscalation: false
+
+        # Tailscale sidecar container for VPN access
+        - name: tailscale
+          image: tailscale/tailscale:latest
+          env:
+            - name: TS_AUTHKEY
+              valueFrom:
+                secretKeyRef:
+                  name: tailscale-auth
+                  key: TS_AUTHKEY
+            - name: TS_HOSTNAME
+              value: "picluster-email"
+            - name: TS_ROUTES
+              value: "192.168.88.0/24"
+            - name: TS_STATE_DIR
+              value: "/var/lib/tailscale"
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - name: tailscale-state
+              mountPath: /var/lib/tailscale
+            - name: dev-net-tun
+              mountPath: /dev/net/tun
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+
+        # Email sync will be handled by a separate CronJob
+
+      # Volumes
+      volumes:
+        # Dovecot configuration
+        - name: dovecot-config
+          configMap:
+            name: dovecot-config
+        # Dovecot users file
+        - name: dovecot-users
+          secret:
+            secretName: dovecot-users
+        # SSL certificates
+        - name: dovecot-ssl
+          secret:
+            secretName: dovecot-ssl
+        # Maildir storage PVC (shared between IMAP server and email sync)
+        - name: maildir-storage
+          persistentVolumeClaim:
+            claimName: email-data-pvc
+        # Tailscale state storage
+        - name: tailscale-state
+          emptyDir: {}
+        # TUN device for Tailscale
+        - name: dev-net-tun
+          hostPath:
+            path: /dev/net/tun

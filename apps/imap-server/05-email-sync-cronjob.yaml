@@ -1,0 +1,110 @@
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: email-sync
+  namespace: email
+  labels:
+    app.kubernetes.io/name: email-sync
+    app.kubernetes.io/component: sync-service
+spec:
+  schedule: "*/5 * * * *"  # Every 5 minutes
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: email-sync
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: aws-email-sync
+            image: amazon/aws-cli:2.15.30
+            command: ["/bin/sh"]
+            args:
+              - -c
+              - |
+                echo "$(date): Starting email sync..."
+                
+                # State file to track synced emails (stored in persistent volume)
+                STATE_FILE="/var/mail/vmail/.synced_emails"
+                
+                # Create state file if it doesn't exist
+                touch "$STATE_FILE"
+                
+                # List and sync emails from S3
+                aws s3api list-objects-v2 --bucket "$S3_BUCKET" --prefix "incoming/" --query 'Contents[].[Key,ETag]' --output text | while read key etag; do
+                  if [[ "$key" == *"AMAZON_SES_SETUP_NOTIFICATION"* ]] || [[ -z "$key" ]] || [[ "$key" == "None" ]]; then
+                    continue
+                  fi
+                  
+                  # Check if this email (by ETag) has already been synced
+                  if grep -q "$etag" "$STATE_FILE" 2>/dev/null; then
+                    echo "  -> Already synced: $key (ETag: $etag)"
+                    continue
+                  fi
+                  
+                  filename="aws-$(date +%s)-$(basename "$key").eml"
+                  filepath="/var/mail/vmail/$EMAIL_ADDRESS/new/$filename"
+                  
+                  echo "Syncing: $key -> $filename"
+                  
+                  # Download email
+                  if aws s3api get-object --bucket "$S3_BUCKET" --key "$key" "/tmp/$filename" >/dev/null 2>&1; then
+                    # Move to maildir and set permissions
+                    mv "/tmp/$filename" "$filepath"
+                    chown 5000:5000 "$filepath" 2>/dev/null || true
+                    chmod 644 "$filepath"
+                    
+                    # Record this email as synced (using ETag as unique identifier)
+                    echo "$etag $key" >> "$STATE_FILE"
+                    
+                    echo "  -> Synced successfully"
+                  else
+                    echo "  -> Failed to download $key"
+                  fi
+                done
+                
+                echo "$(date): Email sync completed"
+            env:
+              - name: AWS_REGION
+                value: "eu-west-1"
+              - name: AWS_ACCESS_KEY_ID
+                valueFrom:
+                  secretKeyRef:
+                    name: aws-credentials
+                    key: access-key-id
+              - name: AWS_SECRET_ACCESS_KEY
+                valueFrom:
+                  secretKeyRef:
+                    name: aws-credentials
+                    key: secret-access-key
+              - name: S3_BUCKET
+                valueFrom:
+                  secretKeyRef:
+                    name: aws-credentials
+                    key: s3-bucket
+              - name: EMAIL_ADDRESS
+                valueFrom:
+                  secretKeyRef:
+                    name: imap-credentials
+                    key: username
+              - name: TZ
+                value: "Europe/Berlin"
+            volumeMounts:
+              - name: maildir-storage
+                mountPath: /var/mail/vmail
+            resources:
+              requests:
+                cpu: 100m
+                memory: 128Mi
+              limits:
+                cpu: 500m
+                memory: 512Mi
+            securityContext:
+              runAsUser: 0  # Need root for chown
+              allowPrivilegeEscalation: false
+          volumes:
+            - name: maildir-storage
+              persistentVolumeClaim:
+                claimName: email-data-pvc

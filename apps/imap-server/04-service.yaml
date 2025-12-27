@@ -1,0 +1,31 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: imap-server
+  namespace: email
+  labels:
+    app.kubernetes.io/name: imap-server
+    app.kubernetes.io/component: mail-server
+spec:
+  type: LoadBalancer
+  externalTrafficPolicy: Local # Preserve source IP
+  selector:
+    app: imap-server
+  ports:
+    - name: imap
+      port: 143
+      targetPort: 143
+      protocol: TCP
+    - name: imaps
+      port: 993
+      targetPort: 993
+      protocol: TCP
+    - name: imap-plain
+      port: 1143
+      targetPort: 1143
+      protocol: TCP
+    - name: web
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
