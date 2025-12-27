@@ -20,7 +20,7 @@ spec:
           restartPolicy: OnFailure
           containers:
           - name: aws-email-sync
-            image: amazon/aws-cli:2.32.24
+            image: amazon/aws-cli:2.15.30
             command: ["/bin/sh"]
             args:
               - -c
