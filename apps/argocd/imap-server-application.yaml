@@ -1,0 +1,26 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: imap-server
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: imap-server
+    app.kubernetes.io/part-of: email-infrastructure
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/t-p/PiCluster
+    path: apps/imap-server
+    targetRevision: main
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: email
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
+    - ApplyOutOfSyncOnly=true
+  revisionHistoryLimit: 3

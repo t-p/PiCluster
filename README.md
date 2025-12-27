@@ -41,7 +41,7 @@ This cluster uses a **hybrid architecture** combining two different Raspberry Pi
 - **Improved Reliability**: Separate control plane reduces worker node impact on cluster management
 - **Better Resource Allocation**: Workers focus purely on application workloads
 - **Easier Maintenance**: Control plane can be maintained independently
-- **Future Expansion**: Easy to add more worker nodes to the Turing Pi board
+- **Scalable Architecture**: Additional standalone Pi nodes can be added as workers if needed
 
 ### Requirements
 - Turing Pi 2.5 carrier board
