@@ -56,11 +56,11 @@ spec:
       containers:
         # Dovecot IMAP Server container
         - name: dovecot
-          image: alpine:3.23
+          image: alpine:3.21
           command: ["/bin/sh", "-c"]
           args:
             - |
-              apk add --no-cache dovecot
+              apk add --no-cache dovecot=2.3.21-r0 || apk add --no-cache dovecot~=2.3
               dovecot -F -c /etc/dovecot/dovecot.conf
           ports:
             - name: imap
