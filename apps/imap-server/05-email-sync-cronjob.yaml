@@ -18,6 +18,8 @@ spec:
             app: email-sync
         spec:
           restartPolicy: OnFailure
+          nodeSelector:
+            kubernetes.io/hostname: node02
           containers:
           - name: aws-email-sync
             # PINNED: Do not update - v2.15.30 is the last version compatible with ARM 8.1-a (Raspberry Pi CM4)
