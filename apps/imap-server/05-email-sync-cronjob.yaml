@@ -9,6 +9,7 @@ metadata:
     app.kubernetes.io/component: sync-service
 spec:
   schedule: "*/5 * * * *"  # Every 5 minutes
+  concurrencyPolicy: Forbid  # Prevent overlapping jobs
   jobTemplate:
     spec:
       template:
