@@ -20,6 +20,8 @@ spec:
           restartPolicy: OnFailure
           containers:
           - name: aws-email-sync
+            # PINNED: Do not update - v2.15.30 is the last version compatible with ARM 8.1-a (Raspberry Pi CM4)
+            # Newer versions require ARM 8.2-a+ (Graviton 2+)
             image: amazon/aws-cli:2.15.30
             command: ["/bin/sh"]
             args:

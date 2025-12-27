@@ -55,6 +55,9 @@ updates:
     labels:
       - "dependencies"
       - "kubernetes"
+    ignore:
+      - dependency-name: "amazon/aws-cli"
+        versions: ["> 2.15.30"]
 
   - package-ecosystem: "docker"
     directory: "/apps/immich"
