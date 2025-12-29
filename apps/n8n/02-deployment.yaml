@@ -28,9 +28,9 @@ spec:
         prometheus.io/port: "5678"
         prometheus.io/path: "/metrics"
     spec:
-      # Pin to node05 for database connectivity and performance
+      # Pin to node06 for better load distribution
       nodeSelector:
-        kubernetes.io/hostname: node05
+        kubernetes.io/hostname: node06
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -39,7 +39,7 @@ spec:
                   - key: kubernetes.io/hostname
                     operator: In
                     values:
-                      - node05
+                      - node06
       containers:
         - name: n8n
           image: n8nio/n8n:2.1.4

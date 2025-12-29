@@ -91,7 +91,7 @@ spec:
           persistentVolumeClaim:
             claimName: jellyfin-nvme-pvc
       nodeSelector:
-        kubernetes.io/hostname: node05
+        kubernetes.io/hostname: node06
       tolerations:
         - key: "arm"
           operator: "Equal"
