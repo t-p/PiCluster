@@ -48,10 +48,10 @@ spec:
             - configMapRef:
                 name: pihole-config
           ports:
-            - name: dns-tcp
+            - name: pihole-dns-tcp
               containerPort: 53
               protocol: TCP
-            - name: dns-udp
+            - name: pihole-dns-udp
               containerPort: 53
               protocol: UDP
             - name: web
@@ -127,13 +127,13 @@ spec:
               name: custom-dnsmasq-config
               subPath: 99-kubernetes.conf
         - name: unbound
-          image: mvance/unbound:1.19.0
+          image: klutchell/unbound:1.19.0
           imagePullPolicy: Always
           ports:
-            - name: dns-tcp
+            - name: unbound-tcp
               containerPort: 5335
               protocol: TCP
-            - name: dns-udp
+            - name: unbound-udp
               containerPort: 5335
               protocol: UDP
           livenessProbe:
@@ -167,7 +167,7 @@ spec:
               drop:
                 - ALL
           volumeMounts:
-            - mountPath: /opt/unbound/etc/unbound/unbound.conf
+            - mountPath: /etc/unbound/unbound.conf
               name: unbound-config
               subPath: unbound.conf
             - mountPath: /tmp

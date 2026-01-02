@@ -245,8 +245,8 @@ data:
         # One thread should be sufficient for a small setup
         num-threads: 1
         
-        # Ensure kernel buffer is large enough
-        so-rcvbuf: 1m
+        # Ensure kernel buffer is large enough (use defaults)
+        # so-rcvbuf: 1m
         
         # Ensure privacy of local IP ranges
         private-address: 192.168.0.0/16
@@ -259,11 +259,11 @@ data:
         # Allow the domain (and its subdomains) to contain private addresses
         private-domain: "local"
         
-        # Read root hints from file
-        root-hints: "/opt/unbound/etc/unbound/root.hints"
+        # Read root hints from file (will be downloaded automatically)
+        # root-hints: "/etc/unbound/root.hints"
         
-        # Enable DNSSEC validation
-        auto-trust-anchor-file: "/opt/unbound/etc/unbound/root.key"
+        # Enable DNSSEC validation (auto-trust-anchor will be created)
+        # auto-trust-anchor-file: "/etc/unbound/root.key"
         
         # Respond to DNS requests on all interfaces
         access-control: 0.0.0.0/0 refuse
@@ -297,11 +297,11 @@ data:
         rrset-cache-size: 100m
         msg-cache-size: 50m
         
-        # Buffer size for UDP port 53 incoming
-        so-rcvbuf: 1m
+        # Buffer size for UDP port 53 incoming (use defaults)
+        # so-rcvbuf: 1m
         
-        # Buffer size for UDP port 53 outgoing
-        so-sndbuf: 1m
+        # Buffer size for UDP port 53 outgoing (use defaults)
+        # so-sndbuf: 1m
         
         # Use all CPUs
         num-threads: 1
@@ -319,9 +319,9 @@ data:
         # More outgoing connections, depends on number of cores: 1024/cores - 50
         outgoing-range: 950
         
-        # Larger socket buffer, OS may need config
-        so-rcvbuf: 4m
-        so-sndbuf: 4m
+        # Larger socket buffer, OS may need config (use defaults for containers)
+        # so-rcvbuf: 1m
+        # so-sndbuf: 1m
         
         # Faster UDP with multithreading (only on Linux)
         so-reuseport: yes
