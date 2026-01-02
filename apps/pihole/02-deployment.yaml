@@ -126,6 +126,52 @@ spec:
             - mountPath: /etc/dnsmasq.d/99-kubernetes.conf
               name: custom-dnsmasq-config
               subPath: 99-kubernetes.conf
+        - name: unbound
+          image: mvance/unbound:1.19.0
+          imagePullPolicy: Always
+          ports:
+            - name: dns-tcp
+              containerPort: 5335
+              protocol: TCP
+            - name: dns-udp
+              containerPort: 5335
+              protocol: UDP
+          livenessProbe:
+            tcpSocket:
+              port: 5335
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            tcpSocket:
+              port: 5335
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            limits:
+              cpu: 200m
+              memory: 256Mi
+            requests:
+              cpu: 50m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - mountPath: /opt/unbound/etc/unbound/unbound.conf
+              name: unbound-config
+              subPath: unbound.conf
+            - mountPath: /tmp
+              name: unbound-tmp
       volumes:
         - name: pihole-config-storage
           persistentVolumeClaim:
@@ -138,6 +184,12 @@ spec:
           configMap:
             name: pihole-logging-config
             defaultMode: 0755
+        - name: unbound-config
+          configMap:
+            name: unbound-config
+            defaultMode: 0644
+        - name: unbound-tmp
+          emptyDir: {}
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       terminationGracePeriodSeconds: 30
