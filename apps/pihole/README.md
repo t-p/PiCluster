@@ -1,15 +1,29 @@
-# Pi-hole DNS Ad Blocker
+# Pi-hole DNS Ad Blocker with Unbound
 
-Network-wide DNS ad blocking and filtering service for the Kubernetes cluster.
+Network-wide DNS ad blocking and recursive DNS resolution service for the Kubernetes cluster.
 
 ## Overview
 
 - **Namespace**: `dns`
-- **Image**: `pihole/pihole:latest`
+- **Images**: `pihole/pihole:2024.07.0` + `klutchell/unbound:1.24.2` (sidecar)
 - **Access**: Web UI NodePort 31080, DNS LoadBalancer port 53
 - **Storage**: 1Gi NFS persistent volume
 - **Database**: Pi-hole FTL database (SQLite)
-- **Upstream DNS**: NextDNS (45.90.28.0, 45.90.30.0)
+- **Upstream DNS**: Unbound recursive resolver (sidecar on localhost:5335)
+
+## Architecture
+
+Pi-hole runs with an Unbound sidecar container providing recursive DNS resolution:
+
+```
+Client → Pi-hole (port 53) → Unbound (localhost:5335) → Root DNS servers
+```
+
+**Benefits:**
+- **Privacy**: No queries sent to third-party DNS providers
+- **Performance**: Local caching and recursive resolution
+- **Security**: DNSSEC validation enabled
+- **Ad Blocking**: Pi-hole blocks ads/trackers before resolution
 
 ## Components
 
@@ -19,9 +33,11 @@ Network-wide DNS ad blocking and filtering service for the Kubernetes cluster.
 - **Note**: `pihole-secret` must be created manually (see Deployment section)
 
 ### 02-deployment.yaml
-- Pi-hole deployment with full DNS and web interface
-- Runs on node01 with privileged security context
-- Resource limits: 500m CPU, 512Mi memory
+- Pi-hole deployment with Unbound sidecar container
+- **Pi-hole container**: DNS ad blocking and web interface
+- **Unbound sidecar**: Recursive DNS resolver on localhost:5335
+- Runs on node01 with appropriate security contexts
+- Resource limits: Pi-hole (500m CPU, 512Mi memory), Unbound (200m CPU, 256Mi memory)
 - Health probes for DNS (TCP/53) and web interface
 
 ### 03-services.yaml
@@ -31,8 +47,9 @@ Network-wide DNS ad blocking and filtering service for the Kubernetes cluster.
 
 ### 04-configmaps.yaml
 - **pihole-config**: Environment variables and Pi-hole settings
-- **pihole-custom-dnsmasq**: Kubernetes-specific DNS configuration
+- **pihole-custom-dnsmasq**: Kubernetes-specific DNS configuration and NTP whitelist
 - **pihole-logging-config**: Log rotation and cleanup scripts
+- **unbound-sidecar-config**: Unbound recursive DNS resolver configuration
 
 ### 05-cronjob.yaml
 - **Gravity Update**: Daily blocklist updates at 2 AM (Amsterdam time)
@@ -42,11 +59,21 @@ Network-wide DNS ad blocking and filtering service for the Kubernetes cluster.
 
 ### Key Environment Variables
 - `TZ`: Europe/Amsterdam
-- `PIHOLE_DNS_`: 45.90.28.0;45.90.30.0 (NextDNS)
+- `DNS1`: 127.0.0.1#5335 (Unbound sidecar)
+- `DNS2`: 127.0.0.1#5335 (Unbound sidecar)
+- `NTP_SERVERS`: pool.ntp.org (whitelisted NTP servers)
 - `DNSMASQ_LISTENING`: all (accept queries from all interfaces)
 - `WEBTHEME`: default-dark
 - `QUERY_LOGGING`: true
 - `DNSSEC`: true
+
+### Unbound Configuration
+- **Cache**: 75MB total (50MB rrset + 25MB message cache)
+- **TTL**: 30 minutes minimum, 4 hours maximum
+- **Prefetching**: Enabled for performance
+- **DNSSEC**: Full validation enabled
+- **Access Control**: Only localhost (Pi-hole) allowed
+- **Privacy**: Hides server identity and version
 
 ### Port Configuration
 - **DNS TCP/UDP**: 53 (internal and external)

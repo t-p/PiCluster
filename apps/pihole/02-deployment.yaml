@@ -86,7 +86,7 @@ spec:
           imagePullPolicy: Always
           env:
             - name: NTP_SERVERS
-              value: time.google.com,time.cloudflare.com,pool.ntp.org
+              value: "pool.ntp.org"
             - name: WEBPASSWORD
               valueFrom:
                 secretKeyRef:

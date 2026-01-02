@@ -87,6 +87,13 @@ data:
     # Explicitly disable local-service to allow queries from cluster networks
     # This overrides the local-service setting in the main config
     no-local-service
+  99-ntp-whitelist.conf: |
+    # Allow NTP pool servers for time synchronization
+    server=/pool.ntp.org/127.0.0.1#5335
+    server=/0.pool.ntp.org/127.0.0.1#5335
+    server=/1.pool.ntp.org/127.0.0.1#5335
+    server=/2.pool.ntp.org/127.0.0.1#5335
+    server=/3.pool.ntp.org/127.0.0.1#5335
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -205,60 +212,3 @@ data:
     done
 
     echo "$(date): Log monitoring check completed"
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: pihole-config
-  namespace: dns
-  labels:
-    app: pihole
-    component: config
-data:
-  CONDITIONAL_FORWARDING: "false"
-  CORS_HOSTS: ""
-  CUSTOM_CACHE_SIZE: "10000"
-  DNS1: "127.0.0.1#5335"
-  DNS2: "127.0.0.1#5335"
-  DNSMASQ_LISTENING: "all"
-  DNSMASQ_LOG_ASYNC: "true"
-  DNSMASQ_OPTS: "--local-service=false --bogus-priv=false"
-  DNSMASQ_USER: "pihole"
-  DNSSEC: "true"
-  FTLCONF_AAAA_QUERY_ANALYSIS: "yes"
-  FTLCONF_ANALYZE_ONLY_A_AND_AAAA: "false"
-  FTLCONF_BLOCK_ICLOUD_PR: "false"
-  FTLCONF_CHECK_LOAD: "false"
-  FTLCONF_CHECK_SHMEM: "false"
-  FTLCONF_DBFILE: "/etc/pihole/pihole-FTL.db"
-  FTLCONF_DBINTERVAL: "1.0"
-  FTLCONF_IGNORE_LOCALHOST: "no"
-  FTLCONF_LOCAL_IPV4: "0.0.0.0"
-  FTLCONF_LOCAL_IPV6: "::"
-  FTLCONF_LOGFILE: "/var/log/pihole/pihole.log"
-  FTLCONF_MACVENDORDB: "/etc/pihole/macvendor.db"
-  FTLCONF_MAXDBDAYS: "365"
-  FTLCONF_MAXLOGAGE: "24.0"
-  FTLCONF_MOZILLA_CANARY: "false"
-  FTLCONF_PIDFILE: "/var/run/pihole-FTL.pid"
-  FTLCONF_PRIVACYLEVEL: "0"
-  FTLCONF_QUERYLOG_DESTINATION: "yes"
-  FTLCONF_QUERYLOG_PERMITTED: "permittedonly"
-  FTLCONF_QUERYLOG_REPLY: "yes"
-  FTLCONF_RATE_LIMIT: "1000/60"
-  FTLCONF_REPLY_ADDR4: ""
-  FTLCONF_REPLY_ADDR6: ""
-  FTLCONF_SOCKETFILE: "/var/run/pihole/FTL.sock"
-  INSTALL_WEB_INTERFACE: "true"
-  INSTALL_WEB_SERVER: "true"
-  INTERFACE: "eth0"
-  LIGHTTPD: "true"
-  PIHOLE_DNS_: "127.0.0.1#5335"
-  PIHOLE_INTERFACE: "eth0"
-  QUERY_LOGGING: "true"
-  SKIPGRAVITYONBOOT: "false"
-  TEMPERATUREUNIT: "c"
-  TZ: "Europe/Amsterdam"
-  WEB_PORT: "80"
-  WEBTHEME: "default-dark"
-  WEBUIBOXEDLAYOUT: "boxed"
