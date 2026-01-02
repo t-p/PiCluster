@@ -212,3 +212,100 @@ data:
     done
 
     echo "$(date): Log monitoring check completed"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: unbound-sidecar-config
+  namespace: dns
+  labels:
+    app: pihole
+    component: unbound-sidecar-config
+data:
+  unbound.conf: |
+    server:
+        # Listen on localhost port 5335 for Pi-hole
+        interface: 127.0.0.1
+        port: 5335
+        
+        # Enable IPv4 and IPv6
+        do-ip4: yes
+        do-ip6: yes
+        do-udp: yes
+        do-tcp: yes
+        
+        # Trust glue only if it is within the server's authority
+        harden-glue: yes
+        
+        # Require DNSSEC data for trust-anchored zones
+        harden-dnssec-stripped: yes
+        
+        # Don't use Capitalization randomization
+        use-caps-for-id: no
+        
+        # Reduce EDNS reassembly buffer size
+        edns-buffer-size: 1232
+        
+        # Perform prefetching of close to expired message cache entries
+        prefetch: yes
+        
+        # One thread should be sufficient for a small setup
+        num-threads: 1
+        
+        # Ensure privacy of local IP ranges
+        private-address: 192.168.0.0/16
+        private-address: 169.254.0.0/16
+        private-address: 172.16.0.0/12
+        private-address: 10.0.0.0/8
+        private-address: fd00::/8
+        private-address: fe80::/10
+        
+        # Allow the domain (and its subdomains) to contain private addresses
+        private-domain: "local"
+        
+        # Access control - only allow localhost (Pi-hole)
+        access-control: 0.0.0.0/0 refuse
+        access-control: 127.0.0.0/8 allow
+        
+        # Hide DNS Server info
+        hide-identity: yes
+        hide-version: yes
+        
+        # Limit DNS Fraud and use DNSSEC
+        harden-below-nxdomain: yes
+        harden-referral-path: yes
+        
+        # Add an unwanted reply threshold to clean the cache
+        unwanted-reply-threshold: 10000000
+        
+        # Have the validator print validation failures to the log
+        val-log-level: 1
+        
+        # Minimum lifetime of cache entries in seconds
+        cache-min-ttl: 1800
+        
+        # Maximum lifetime of cached entries in seconds
+        cache-max-ttl: 14400
+        
+        # Perform prefetching of almost expired DNS cache entries
+        prefetch: yes
+        prefetch-key: yes
+        
+        # Cache sizes
+        rrset-cache-size: 50m
+        msg-cache-size: 25m
+        
+        # Use all CPUs
+        num-threads: 1
+        
+        # Power of 2 close to num-threads
+        msg-cache-slabs: 1
+        rrset-cache-slabs: 1
+        infra-cache-slabs: 1
+        key-cache-slabs: 1
+        
+        # More outgoing connections
+        outgoing-range: 950
+        
+        # Faster UDP with multithreading (only on Linux)
+        so-reuseport: yes
