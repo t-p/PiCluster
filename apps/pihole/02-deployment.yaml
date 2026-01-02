@@ -95,10 +95,6 @@ spec:
                   optional: true
             - name: SKIPGRAVITYONBOOT
               value: "false"
-            - name: DNS1
-              value: "127.0.0.1#5335"
-            - name: DNS2
-              value: "127.0.0.1#5335"
           envFrom:
             - configMapRef:
                 name: pihole-config
@@ -181,38 +177,6 @@ spec:
             - mountPath: /etc/dnsmasq.d/99-kubernetes.conf
               name: custom-dnsmasq-config
               subPath: 99-kubernetes.conf
-        - name: unbound
-          image: klutchell/unbound:1.24.2
-          imagePullPolicy: IfNotPresent
-          ports:
-            - name: unbound-tcp
-              containerPort: 5335
-              protocol: TCP
-            - name: unbound-udp
-              containerPort: 5335
-              protocol: UDP
-          resources:
-            limits:
-              cpu: 200m
-              memory: 256Mi
-            requests:
-              cpu: 50m
-              memory: 128Mi
-          securityContext:
-            allowPrivilegeEscalation: false
-            runAsNonRoot: true
-            runAsUser: 101
-            runAsGroup: 102
-            readOnlyRootFilesystem: false
-            capabilities:
-              drop:
-                - ALL
-          volumeMounts:
-            - mountPath: /etc/unbound/custom.conf.d/unbound.conf
-              name: unbound-sidecar-config
-              subPath: unbound.conf
-            - mountPath: /tmp
-              name: unbound-tmp
       volumes:
         - name: pihole-config-storage
           persistentVolumeClaim:
@@ -225,11 +189,6 @@ spec:
           configMap:
             name: pihole-logging-config
             defaultMode: 0755
-        - name: unbound-sidecar-config
-          configMap:
-            name: unbound-sidecar-config
-        - name: unbound-tmp
-          emptyDir: {}
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       terminationGracePeriodSeconds: 30
