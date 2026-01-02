@@ -27,6 +27,59 @@ spec:
         runAsUser: 0
       nodeSelector:
         kubernetes.io/hostname: node01
+      initContainers:
+        - name: setup-unbound-config
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              mkdir -p /etc/unbound
+              if [ ! -f /etc/pihole/unbound/unbound.conf ]; then
+                mkdir -p /etc/pihole/unbound
+                cat > /etc/pihole/unbound/unbound.conf << 'EOF'
+              server:
+                  interface: 127.0.0.1
+                  port: 5335
+                  do-ip4: yes
+                  do-ip6: yes
+                  do-udp: yes
+                  do-tcp: yes
+                  
+                  # Basic security
+                  harden-glue: yes
+                  harden-dnssec-stripped: yes
+                  use-caps-for-id: no
+                  
+                  # Access control
+                  access-control: 0.0.0.0/0 refuse
+                  access-control: 127.0.0.0/8 allow
+                  
+                  # Privacy
+                  hide-identity: yes
+                  hide-version: yes
+                  
+                  # Performance
+                  num-threads: 1
+                  msg-cache-size: 25m
+                  rrset-cache-size: 50m
+                  cache-min-ttl: 300
+                  cache-max-ttl: 3600
+                  
+                  # Private networks
+                  private-address: 192.168.0.0/16
+                  private-address: 10.0.0.0/8
+                  private-address: 172.16.0.0/12
+              EOF
+                echo "Created unbound.conf"
+              else
+                echo "unbound.conf already exists"
+              fi
+              chown -R 1000:1000 /etc/pihole/unbound
+          volumeMounts:
+            - mountPath: /etc/pihole
+              name: pihole-config-storage
+              subPath: pihole
       containers:
         - name: pihole
           image: pihole/pihole:2025.11.1
@@ -42,8 +95,10 @@ spec:
                   optional: true
             - name: SKIPGRAVITYONBOOT
               value: "false"
-            - name: DNSMASQ_USER
-              value: root
+            - name: DNS1
+              value: "127.0.0.1#5335"
+            - name: DNS2
+              value: "127.0.0.1#5335"
           envFrom:
             - configMapRef:
                 name: pihole-config
@@ -127,8 +182,8 @@ spec:
               name: custom-dnsmasq-config
               subPath: 99-kubernetes.conf
         - name: unbound
-          image: klutchell/unbound:1.19.0
-          imagePullPolicy: Always
+          image: klutchell/unbound:1.24.2
+          imagePullPolicy: IfNotPresent
           ports:
             - name: unbound-tcp
               containerPort: 5335
@@ -136,20 +191,6 @@ spec:
             - name: unbound-udp
               containerPort: 5335
               protocol: UDP
-          livenessProbe:
-            tcpSocket:
-              port: 5335
-            initialDelaySeconds: 30
-            periodSeconds: 30
-            timeoutSeconds: 5
-            failureThreshold: 3
-          readinessProbe:
-            tcpSocket:
-              port: 5335
-            initialDelaySeconds: 15
-            periodSeconds: 10
-            timeoutSeconds: 5
-            failureThreshold: 3
           resources:
             limits:
               cpu: 200m
@@ -160,15 +201,15 @@ spec:
           securityContext:
             allowPrivilegeEscalation: false
             runAsNonRoot: true
-            runAsUser: 1000
-            runAsGroup: 1000
-            readOnlyRootFilesystem: true
+            runAsUser: 101
+            runAsGroup: 102
+            readOnlyRootFilesystem: false
             capabilities:
               drop:
                 - ALL
           volumeMounts:
-            - mountPath: /etc/unbound/unbound.conf
-              name: unbound-config
+            - mountPath: /etc/unbound/custom.conf.d/unbound.conf
+              name: unbound-sidecar-config
               subPath: unbound.conf
             - mountPath: /tmp
               name: unbound-tmp
@@ -184,10 +225,9 @@ spec:
           configMap:
             name: pihole-logging-config
             defaultMode: 0755
-        - name: unbound-config
+        - name: unbound-sidecar-config
           configMap:
-            name: unbound-config
-            defaultMode: 0644
+            name: unbound-sidecar-config
         - name: unbound-tmp
           emptyDir: {}
       dnsPolicy: ClusterFirst
