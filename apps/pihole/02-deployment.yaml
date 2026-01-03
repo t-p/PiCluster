@@ -27,59 +27,6 @@ spec:
         runAsUser: 0
       nodeSelector:
         kubernetes.io/hostname: node01
-      initContainers:
-        - name: setup-unbound-config
-          image: busybox:1.37
-          command:
-            - sh
-            - -c
-            - |
-              mkdir -p /etc/unbound
-              if [ ! -f /etc/pihole/unbound/unbound.conf ]; then
-                mkdir -p /etc/pihole/unbound
-                cat > /etc/pihole/unbound/unbound.conf << 'EOF'
-              server:
-                  interface: 127.0.0.1
-                  port: 5335
-                  do-ip4: yes
-                  do-ip6: yes
-                  do-udp: yes
-                  do-tcp: yes
-                  
-                  # Basic security
-                  harden-glue: yes
-                  harden-dnssec-stripped: yes
-                  use-caps-for-id: no
-                  
-                  # Access control
-                  access-control: 0.0.0.0/0 refuse
-                  access-control: 127.0.0.0/8 allow
-                  
-                  # Privacy
-                  hide-identity: yes
-                  hide-version: yes
-                  
-                  # Performance
-                  num-threads: 1
-                  msg-cache-size: 25m
-                  rrset-cache-size: 50m
-                  cache-min-ttl: 300
-                  cache-max-ttl: 3600
-                  
-                  # Private networks
-                  private-address: 192.168.0.0/16
-                  private-address: 10.0.0.0/8
-                  private-address: 172.16.0.0/12
-              EOF
-                echo "Created unbound.conf"
-              else
-                echo "unbound.conf already exists"
-              fi
-              chown -R 1000:1000 /etc/pihole/unbound
-          volumeMounts:
-            - mountPath: /etc/pihole
-              name: pihole-config-storage
-              subPath: pihole
       containers:
         - name: pihole
           image: pihole/pihole:2025.11.1
