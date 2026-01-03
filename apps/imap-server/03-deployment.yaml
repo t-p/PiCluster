@@ -25,14 +25,14 @@ spec:
       # Security context for the pod
       securityContext:
         fsGroup: 5000
-      
+
       # Service account for Tailscale permissions
       serviceAccountName: tailscale
 
       # Init container to set up directory structure
       initContainers:
         - name: init-directories
-          image: busybox:latest
+          image: busybox:1.37.0
           env:
             - name: EMAIL_ADDRESS
               valueFrom:
@@ -56,7 +56,7 @@ spec:
       containers:
         # Dovecot IMAP Server container
         - name: dovecot
-          image: alpine:3.23
+          image: alpine:3.19
           command: ["/bin/sh", "-c"]
           args:
             - |

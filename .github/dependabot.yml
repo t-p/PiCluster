@@ -58,6 +58,8 @@ updates:
     ignore:
       - dependency-name: "amazon/aws-cli"
         versions: ["> 2.15.30"]
+      - dependency-name: "alpine"
+        versions: ["> 3.19"]
 
   - package-ecosystem: "docker"
     directory: "/apps/immich"

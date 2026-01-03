@@ -30,46 +30,46 @@ spec:
               - -c
               - |
                 echo "$(date): Starting email sync..."
-                
+
                 # State file to track synced emails (stored in persistent volume)
                 STATE_FILE="/var/mail/vmail/.synced_emails"
-                
+
                 # Create state file if it doesn't exist
                 touch "$STATE_FILE"
-                
+
                 # List and sync emails from S3
                 aws s3api list-objects-v2 --bucket "$S3_BUCKET" --prefix "incoming/" --query 'Contents[].[Key,ETag]' --output text | while read key etag; do
                   if [[ "$key" == *"AMAZON_SES_SETUP_NOTIFICATION"* ]] || [[ -z "$key" ]] || [[ "$key" == "None" ]]; then
                     continue
                   fi
-                  
+
                   # Check if this email (by ETag) has already been synced
                   if grep -q "$etag" "$STATE_FILE" 2>/dev/null; then
                     echo "  -> Already synced: $key (ETag: $etag)"
                     continue
                   fi
-                  
+
                   filename="aws-$(date +%s)-$(basename "$key").eml"
                   filepath="/var/mail/vmail/$EMAIL_ADDRESS/new/$filename"
-                  
+
                   echo "Syncing: $key -> $filename"
-                  
+
                   # Download email
                   if aws s3api get-object --bucket "$S3_BUCKET" --key "$key" "/tmp/$filename" >/dev/null 2>&1; then
                     # Move to maildir and set permissions
                     mv "/tmp/$filename" "$filepath"
                     chown 5000:5000 "$filepath" 2>/dev/null || true
                     chmod 644 "$filepath"
-                    
+
                     # Record this email as synced (using ETag as unique identifier)
                     echo "$etag $key" >> "$STATE_FILE"
-                    
+
                     echo "  -> Synced successfully"
                   else
                     echo "  -> Failed to download $key"
                   fi
                 done
-                
+
                 echo "$(date): Email sync completed"
             env:
               - name: AWS_REGION

@@ -11,22 +11,22 @@ data:
   dovecot.conf: |
     # Simple Dovecot 2.3 configuration
     protocols = imap
-    
+
     mail_location = maildir:/var/mail/vmail/%u
-    
+
     passdb {
       driver = passwd-file
       args = /etc/dovecot/users
     }
-    
+
     userdb {
       driver = static
       args = uid=5000 gid=5000 home=/var/mail/vmail/%u
     }
-    
+
     ssl = no
     disable_plaintext_auth = no
-    
+
     namespace inbox {
       inbox = yes
       separator = /
