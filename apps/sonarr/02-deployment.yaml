@@ -75,7 +75,7 @@ spec:
           persistentVolumeClaim:
             claimName: sonarr-tv-pvc
       nodeSelector:
-        kubernetes.io/hostname: node02
+        kubernetes.io/hostname: node06
         node-role.kubernetes.io/worker: worker
       tolerations:
         - key: "arm"
