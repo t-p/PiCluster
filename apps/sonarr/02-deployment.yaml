@@ -16,7 +16,7 @@ spec:
         app: sonarr
     spec:
       nodeSelector:
-        kubernetes.io/hostname: node06
+        kubernetes.io/hostname: node02
       securityContext:
         fsGroup: 1000
       containers:

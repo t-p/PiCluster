@@ -7,7 +7,7 @@ spec:
   capacity:
     storage: 250Mi
   accessModes:
-    - ReadWriteMany
+    - ReadWriteOnce
   persistentVolumeReclaimPolicy: Retain
   storageClassName: nfs
   nfs:
@@ -37,7 +37,7 @@ metadata:
   namespace: downloads
 spec:
   accessModes:
-    - ReadWriteMany
+    - ReadWriteOnce
   storageClassName: nfs
   resources:
     requests:
