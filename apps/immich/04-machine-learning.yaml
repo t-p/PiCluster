@@ -39,7 +39,7 @@ spec:
                       - node05
       containers:
         - name: immich-machine-learning
-          image: ghcr.io/immich-app/immich-machine-learning:v2.5.2
+          image: ghcr.io/immich-app/immich-machine-learning:v2.5.5
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3003
