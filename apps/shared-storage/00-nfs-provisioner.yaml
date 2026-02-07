@@ -13,4 +13,4 @@ spec:
     storageClass.name: nfs
   valuesContent: |
     nodeSelector:
-      kubernetes.io/hostname: node01
+      kubernetes.io/hostname: node06
