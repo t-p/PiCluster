@@ -236,7 +236,7 @@ spec:
             failureThreshold: 30
         # PostgreSQL Exporter sidecar for Prometheus metrics
         - name: postgres-exporter
-          image: prometheuscommunity/postgres-exporter:v0.18.1
+          image: prometheuscommunity/postgres-exporter:v0.19.0
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 9187
