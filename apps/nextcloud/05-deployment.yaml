@@ -1,0 +1,139 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nextcloud
+  namespace: nextcloud
+  labels:
+    app: nextcloud
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: nextcloud
+  template:
+    metadata:
+      labels:
+        app: nextcloud
+    spec:
+      serviceAccountName: tailscale
+      securityContext:
+        fsGroup: 33
+      containers:
+        - name: nextcloud
+          image: nextcloud:30-apache
+          ports:
+            - containerPort: 80
+              name: http
+          env:
+            - name: POSTGRES_HOST
+              value: "postgres.database.svc.cluster.local"
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: nextcloud-db-secret
+                  key: db-name
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: nextcloud-db-secret
+                  key: db-user
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: nextcloud-db-secret
+                  key: db-password
+            - name: REDIS_HOST
+              value: "redis.nextcloud.svc.cluster.local"
+            - name: NEXTCLOUD_ADMIN_USER
+              valueFrom:
+                secretKeyRef:
+                  name: nextcloud-admin-secret
+                  key: admin-user
+            - name: NEXTCLOUD_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: nextcloud-admin-secret
+                  key: admin-password
+            - name: NEXTCLOUD_TRUSTED_DOMAINS
+              value: "192.168.88.0/24 picluster-nextcloud"
+            - name: TZ
+              value: "UTC"
+          volumeMounts:
+            - name: nextcloud-data
+              mountPath: /var/www/html
+            - name: nextcloud-config
+              mountPath: /var/www/html/config
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 2Gi
+          # Probes disabled during initial setup - re-enable after first successful start
+          # livenessProbe:
+          #   httpGet:
+          #     path: /status.php
+          #     port: 80
+          #     httpHeaders:
+          #       - name: Host
+          #         value: localhost
+          #   initialDelaySeconds: 300
+          #   periodSeconds: 30
+          #   timeoutSeconds: 10
+          #   failureThreshold: 3
+          # readinessProbe:
+          #   httpGet:
+          #     path: /status.php
+          #     port: 80
+          #     httpHeaders:
+          #       - name: Host
+          #         value: localhost
+          #   initialDelaySeconds: 180
+          #   periodSeconds: 15
+          #   timeoutSeconds: 5
+        - name: tailscale
+          image: tailscale/tailscale:v1.94.1
+          env:
+            - name: TS_AUTHKEY
+              valueFrom:
+                secretKeyRef:
+                  name: tailscale-auth
+                  key: TS_AUTHKEY
+            - name: TS_HOSTNAME
+              value: "picluster-nextcloud"
+            - name: TS_ROUTES
+              value: "192.168.88.0/24"
+            - name: TS_STATE_DIR
+              value: "/var/lib/tailscale"
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - name: tailscale-state
+              mountPath: /var/lib/tailscale
+            - name: dev-net-tun
+              mountPath: /dev/net/tun
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+      volumes:
+        - name: nextcloud-data
+          persistentVolumeClaim:
+            claimName: nextcloud-data-pvc
+        - name: nextcloud-config
+          persistentVolumeClaim:
+            claimName: nextcloud-config-pvc
+        - name: tailscale-state
+          emptyDir: {}
+        - name: dev-net-tun
+          hostPath:
+            path: /dev/net/tun
+      nodeSelector:
+        kubernetes.io/hostname: node06

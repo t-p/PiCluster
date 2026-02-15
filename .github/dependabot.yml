@@ -170,3 +170,14 @@ updates:
     labels:
       - "dependencies"
       - "kubernetes"
+
+  - package-ecosystem: "docker"
+    directory: "/apps/nextcloud"
+    schedule:
+      interval: "weekly"
+      day: "saturday"
+      time: "08:00"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "kubernetes"
