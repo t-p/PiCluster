@@ -10,7 +10,7 @@ spec:
       restartPolicy: OnFailure
       containers:
         - name: db-init
-          image: postgres:16-alpine
+          image: postgres:18-alpine
           env:
             - name: PGHOST
               value: "postgres.database.svc.cluster.local"
