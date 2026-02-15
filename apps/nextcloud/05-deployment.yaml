@@ -96,7 +96,7 @@ spec:
           #   periodSeconds: 15
           #   timeoutSeconds: 5
         - name: tailscale
-          image: tailscale/tailscale:v1.94.1
+          image: tailscale/tailscale:v1.94.2
           env:
             - name: TS_AUTHKEY
               valueFrom:
