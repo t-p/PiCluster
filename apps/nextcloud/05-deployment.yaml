@@ -23,7 +23,7 @@ spec:
         fsGroup: 33
       containers:
         - name: nextcloud
-          image: nextcloud:30-apache
+          image: nextcloud:32-apache
           ports:
             - containerPort: 80
               name: http
