@@ -1,53 +1,56 @@
----
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: nextcloud-db-init
-  namespace: nextcloud
-spec:
-  template:
-    spec:
-      restartPolicy: OnFailure
-      containers:
-        - name: db-init
-          image: postgres:18-alpine
-          env:
-            - name: PGHOST
-              value: "postgres.database.svc.cluster.local"
-            - name: PGPORT
-              value: "5432"
-            - name: PGUSER
-              valueFrom:
-                secretKeyRef:
-                  name: postgres-secret
-                  key: username
-            - name: PGPASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: postgres-secret
-                  key: password
-            - name: NC_DB_NAME
-              valueFrom:
-                secretKeyRef:
-                  name: nextcloud-db-secret
-                  key: db-name
-            - name: NC_DB_USER
-              valueFrom:
-                secretKeyRef:
-                  name: nextcloud-db-secret
-                  key: db-user
-            - name: NC_DB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: nextcloud-db-secret
-                  key: db-password
-          command:
-            - /bin/sh
-            - -c
-            - |
-              echo "Creating Nextcloud database and user..."
-              psql -c "CREATE DATABASE ${NC_DB_NAME};" || echo "Database already exists"
-              psql -c "CREATE USER ${NC_DB_USER} WITH PASSWORD '${NC_DB_PASSWORD}';" || echo "User already exists"
-              psql -c "GRANT ALL PRIVILEGES ON DATABASE ${NC_DB_NAME} TO ${NC_DB_USER};"
-              psql -d ${NC_DB_NAME} -c "GRANT ALL ON SCHEMA public TO ${NC_DB_USER};"
-              echo "Database setup complete!"
+# Database initialization job - disabled after initial setup
+# Uncomment and apply manually if database needs to be recreated
+#
+# ---
+# apiVersion: batch/v1
+# kind: Job
+# metadata:
+#   name: nextcloud-db-init
+#   namespace: nextcloud
+# spec:
+#   template:
+#     spec:
+#       restartPolicy: OnFailure
+#       containers:
+#         - name: db-init
+#           image: postgres:16-alpine
+#           env:
+#             - name: PGHOST
+#               value: "postgres.database.svc.cluster.local"
+#             - name: PGPORT
+#               value: "5432"
+#             - name: PGUSER
+#               valueFrom:
+#                 secretKeyRef:
+#                   name: postgres-secret
+#                   key: username
+#             - name: PGPASSWORD
+#               valueFrom:
+#                 secretKeyRef:
+#                   name: postgres-secret
+#                   key: password
+#             - name: NC_DB_NAME
+#               valueFrom:
+#                 secretKeyRef:
+#                   name: nextcloud-db-secret
+#                   key: db-name
+#             - name: NC_DB_USER
+#               valueFrom:
+#                 secretKeyRef:
+#                   name: nextcloud-db-secret
+#                   key: db-user
+#             - name: NC_DB_PASSWORD
+#               valueFrom:
+#                 secretKeyRef:
+#                   name: nextcloud-db-secret
+#                   key: db-password
+#           command:
+#             - /bin/sh
+#             - -c
+#             - |
+#               echo "Creating Nextcloud database and user..."
+#               psql -c "CREATE DATABASE ${NC_DB_NAME};" || echo "Database already exists"
+#               psql -c "CREATE USER ${NC_DB_USER} WITH PASSWORD '${NC_DB_PASSWORD}';" || echo "User already exists"
+#               psql -c "GRANT ALL PRIVILEGES ON DATABASE ${NC_DB_NAME} TO ${NC_DB_USER};"
+#               psql -d ${NC_DB_NAME} -c "GRANT ALL ON SCHEMA public TO ${NC_DB_USER};"
+#               echo "Database setup complete!"
