@@ -8,13 +8,16 @@ metadata:
     app: pihole
     component: dns-server
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: pihole
       component: dns-server
   strategy:
-    type: Recreate
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
   template:
     metadata:
       labels:
@@ -25,8 +28,16 @@ spec:
         fsGroup: 0
         runAsGroup: 0
         runAsUser: 0
-      nodeSelector:
-        kubernetes.io/hostname: node01
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: pihole
+                    component: dns-server
+                topologyKey: kubernetes.io/hostname
       containers:
         - name: pihole
           image: pihole/pihole:2026.02.0
