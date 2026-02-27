@@ -46,7 +46,7 @@ This cluster uses a **hybrid architecture** combining two different Raspberry Pi
 ### Requirements
 - Turing Pi 2.5 carrier board
 - 4x Raspberry Pi Compute Module 4 (with eMMC)
-- 1x Raspberry Pi 5 (standalone, for control plane)
+- 2x Raspberry Pi 5 (standalone, one for control plane, one for worker)
 - Micro SD card (for OS images and Pi 5)
 - Network connection to your LAN
 
@@ -58,6 +58,7 @@ This cluster uses a **hybrid architecture** combining two different Raspberry Pi
 | Node 3 | CM4 (Turing Pi) | Worker | 192.168.88.163 | node03 |
 | Node 4 | CM4 (Turing Pi) | Worker | 192.168.88.162 | node04 |
 | Node 5 | **Pi 5 (Standalone)** | **Control Plane** | 192.168.88.126 | node05 |
+| Node 6 | **Pi 5 (Standalone)** | **Worker** | 192.168.88.83 | node06 |
 
 ## Hardware Setup and Configuration
 
@@ -151,7 +152,7 @@ sudo reboot
 ### Step 7: Configure Network and Hostnames
 After all nodes have booted (CM4 nodes + Pi 5), SSH into each node and configure networking.
 
-Add all node IP addresses to `/etc/hosts` on each Compute Module:
+Add all node IP addresses to `/etc/hosts` on each node:
 ```
 127.0.0.1      localhost
 192.168.88.167 node01 node01.local
@@ -159,6 +160,7 @@ Add all node IP addresses to `/etc/hosts` on each Compute Module:
 192.168.88.163 node03 node03.local
 192.168.88.162 node04 node04.local
 192.168.88.126 node05 node05.local
+192.168.88.83  node06 node06.local
 ```
 
 Set the appropriate hostname on each node:
@@ -220,7 +222,7 @@ kubectl get pods --all-namespaces
 ```
 
 ### Step 2: Join Worker Nodes to the Cluster
-On each worker node (node01, node02, node03, node04), run:
+On each worker node (node01, node02, node03, node04, node06), run:
 ```bash
 curl -sfL https://get.k3s.io | K3S_URL=https://192.168.88.126:6443 K3S_TOKEN=<TOKEN_FROM_STEP_1> sh -
 ```
@@ -232,6 +234,7 @@ kubectl label node node01 node-role.kubernetes.io/worker=worker
 kubectl label node node02 node-role.kubernetes.io/worker=worker
 kubectl label node node03 node-role.kubernetes.io/worker=worker
 kubectl label node node04 node-role.kubernetes.io/worker=worker
+kubectl label node node06 node-role.kubernetes.io/worker=worker
 ```
 
 Verify cluster status:
@@ -246,6 +249,9 @@ node01   Ready    worker                 1m    v1.32.6+k3s1   192.168.88.167   <
 node02   Ready    worker                 1m    v1.32.6+k3s1   192.168.88.164   <none>        Debian GNU/Linux 12 (bookworm)  [CM4]
 node03   Ready    worker                 1m    v1.32.6+k3s1   192.168.88.163   <none>        Debian GNU/Linux 12 (bookworm)  [CM4]
 node04   Ready    worker                 1m    v1.32.6+k3s1   192.168.88.162   <none>        Debian GNU/Linux 12 (bookworm)  [CM4]
+node05   Ready    control-plane,master   5m    v1.32.6+k3s1   192.168.88.126   <none>        Debian GNU/Linux 12 (bookworm)  [Pi5]
+node06   Ready    worker                 1m    v1.32.6+k3s1   192.168.88.83    <none>        Debian GNU/Linux 13 (trixie)    [Pi5]
+```
 node05   Ready    control-plane,master   5m    v1.32.6+k3s1   192.168.88.126   <none>        Debian GNU/Linux 12 (bookworm)  [Pi5]
 ```
 ## Storage Configuration (NFS)
@@ -364,18 +370,19 @@ This K3s cluster hosts a complete media server stack with automated content mana
 | **Homarr** | Modern Dashboard & Service Management | `http://192.168.88.126:31880` | NodePort | [Homarr README](apps/homarr/README.md) |
 | **Jellyfin** | Media Server & Streaming | `http://192.168.88.126:8096` | LoadBalancer | [Jellyfin README](apps/jellyfin/README.md) |
 | **Immich** | Self-hosted Photo & Video Management | `http://192.168.88.126:31283` | NodePort | [Immich README](apps/immich/README.md) |
+| **Nextcloud** | File Sync & Share Platform | `http://192.168.88.126:30080` | NodePort | [Nextcloud README](apps/nextcloud/README.md) |
 | **IMAP Server** | Self-hosted Email Server with S3 Sync | `picluster-email:143` (Tailscale) | LoadBalancer | [IMAP Server README](apps/imap-server/README.md) |
 | **Database** | Shared PostgreSQL & Redis Services | Internal Only | ClusterIP | [Database README](apps/database/README.md) |
 | **Transmission** | BitTorrent Client (VPN Protected) | `http://192.168.88.162:9091` | LoadBalancer | [Transmission README](apps/transmission/README.md) |
 | **Sonarr** | TV Series Management | `http://192.168.88.162:8989` | LoadBalancer | [Sonarr README](apps/sonarr/README.md) |
 | **Radarr** | Movie Management | `http://192.168.88.162:7878` | LoadBalancer | [Radarr README](apps/radarr/README.md) |
-| **Prowlarr** | Indexer Manager (Jackett Replacement) | `http://192.168.88.162:9117` | LoadBalancer | - |
+| **Prowlarr** | Indexer Manager (Jackett Replacement) | `http://192.168.88.162:9117` | LoadBalancer | [Prowlarr README](apps/prowlarr/README.md) |
 | **Pi-hole** | Network-wide DNS Ad Blocker | `http://192.168.88.167:31080/admin/` | NodePort | [Pi-hole README](apps/pihole/README.md) |
 | **Cloudflare Tunnel** | Secure Remote Access | External via Cloudflare | Tunnel | [Cloudflare Tunnel README](apps/cloudflare-tunnel/README.md) |
 | **Argo CD** | GitOps Kubernetes Management | `http://192.168.88.163:30080` | NodePort | [Argo CD README](apps/argocd/README.md) |
 | **Grafana** | Monitoring Dashboards (PostgreSQL Backend) | `http://192.168.88.126:30300` | NodePort | [Monitoring README](apps/monitoring/README.md) |
 | **Prometheus** | Metrics Collection | `http://192.168.88.126:30900` | NodePort | [Monitoring README](apps/monitoring/README.md) |
-| **n8n** | Workflow Automation & Integration | `http://192.168.88.126:32000` | NodePort | - |
+| **n8n** | Workflow Automation & Integration | `http://192.168.88.126:32000` | NodePort | [n8n README](apps/n8n/README.md) |
 
 ### Detailed Application Information
 
@@ -412,6 +419,25 @@ This K3s cluster hosts a complete media server stack with automated content mana
 - **Ports**: 31283 (HTTP Web Interface)
 - **Mobile Apps**: iOS and Android with automatic backup
 - **More info**: [apps/immich/README.md](apps/immich/README.md)
+
+#### ☁️ Nextcloud - File Sync & Share Platform
+- **Namespace**: `nextcloud`
+- **Description**: Self-hosted file sync and share platform with Tailscale VPN integration
+- **Features**:
+  - File synchronization across devices
+  - Web interface and desktop/mobile clients
+  - Calendar, contacts, and collaboration tools
+  - Secure remote access via Tailscale VPN
+  - PostgreSQL database backend
+  - Redis caching for performance
+- **Storage**:
+  - Config: 1Gi NFS
+  - Data: 50Gi NFS
+  - Database: Shared PostgreSQL (database namespace)
+- **Access**: 
+  - Local: `http://192.168.88.126:30080` (NodePort)
+  - Remote: Via Tailscale VPN subnet routing
+- **More info**: [apps/nextcloud/README.md](apps/nextcloud/README.md)
 
 #### 📧 IMAP Server - Self-hosted Email Server
 - **Namespace**: `email`
@@ -634,6 +660,8 @@ kubectl apply -f apps/database/
 # Deploy applications (order matters for dependencies)
 kubectl apply -f apps/jellyfin/
 kubectl apply -f apps/immich/
+kubectl apply -f apps/nextcloud/
+kubectl apply -f apps/imap-server/
 kubectl apply -f apps/prowlarr/
 kubectl apply -f apps/transmission/
 kubectl apply -f apps/sonarr/
