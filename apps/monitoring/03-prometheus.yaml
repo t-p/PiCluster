@@ -100,7 +100,7 @@ spec:
         app: prometheus
     spec:
       nodeSelector:
-        kubernetes.io/hostname: node03
+        kubernetes.io/hostname: node01
       serviceAccountName: prometheus
       containers:
         - name: prometheus
