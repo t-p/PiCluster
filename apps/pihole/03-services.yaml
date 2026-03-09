@@ -38,6 +38,7 @@ spec:
   selector:
     app: pihole
     component: dns-server
+    pihole-web: primary  # Only route to primary pod to avoid NFS locking issues
   ports:
     - name: web
       port: 80
