@@ -2,6 +2,33 @@
 apiVersion: v1
 kind: Service
 metadata:
+  name: pihole-headless
+  namespace: dns
+  labels:
+    app: pihole
+    component: dns-service
+spec:
+  clusterIP: None
+  selector:
+    app: pihole
+    component: dns-server
+  ports:
+    - name: dns-tcp
+      port: 53
+      targetPort: 53
+      protocol: TCP
+    - name: dns-udp
+      port: 53
+      targetPort: 53
+      protocol: UDP
+    - name: web
+      port: 80
+      targetPort: 80
+      protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
   name: pihole-dns
   namespace: dns
   labels:
@@ -38,7 +65,7 @@ spec:
   selector:
     app: pihole
     component: dns-server
-    pihole-web: primary  # Only route to primary pod to avoid NFS locking issues
+    statefulset.kubernetes.io/pod-name: pihole-0  # Route to first StatefulSet pod only
   ports:
     - name: web
       port: 80
