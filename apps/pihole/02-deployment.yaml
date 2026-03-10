@@ -24,10 +24,6 @@ spec:
         app: pihole
         component: dns-server
     spec:
-      hostNetwork: true
-      dnsPolicy: ClusterFirstWithHostNet
-      nodeSelector:
-        kubernetes.io/hostname: node04
       securityContext:
         fsGroup: 0
         runAsGroup: 0
