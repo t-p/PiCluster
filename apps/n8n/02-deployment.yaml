@@ -42,7 +42,7 @@ spec:
                       - node06
       containers:
         - name: n8n
-          image: n8nio/n8n:2.14.2
+          image: n8nio/n8n:2.15.1
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
