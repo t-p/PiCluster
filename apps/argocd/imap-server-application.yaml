@@ -5,14 +5,13 @@ metadata:
   name: imap-server
   namespace: argocd
   labels:
-    app.kubernetes.io/name: imap-server
-    app.kubernetes.io/part-of: email-infrastructure
+    app: imap-server
 spec:
   project: default
   source:
     repoURL: https://github.com/t-p/PiCluster
-    path: apps/imap-server
     targetRevision: main
+    path: apps/imap-server
   destination:
     server: https://kubernetes.default.svc
     namespace: email
@@ -21,6 +20,13 @@ spec:
       prune: true
       selfHeal: true
     syncOptions:
-    - CreateNamespace=true
-    - ApplyOutOfSyncOnly=true
-  revisionHistoryLimit: 3
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10

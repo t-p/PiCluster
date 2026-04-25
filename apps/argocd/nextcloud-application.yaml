@@ -4,11 +4,13 @@ kind: Application
 metadata:
   name: nextcloud
   namespace: argocd
+  labels:
+    app: nextcloud
 spec:
   project: default
   source:
-    repoURL: https://github.com/t-p/PiCluster.git
-    targetRevision: HEAD
+    repoURL: https://github.com/t-p/PiCluster
+    targetRevision: main
     path: apps/nextcloud
   destination:
     server: https://kubernetes.default.svc
@@ -19,3 +21,12 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
