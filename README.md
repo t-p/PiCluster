@@ -254,6 +254,7 @@ node06   Ready    worker                 1m    v1.32.6+k3s1   192.168.88.83    <
 ```
 node05   Ready    control-plane,master   5m    v1.32.6+k3s1   192.168.88.126   <none>        Debian GNU/Linux 12 (bookworm)  [Pi5]
 ```
+
 ## Storage Configuration (NFS)
 
 ### Overview
@@ -376,7 +377,7 @@ This K3s cluster hosts a complete media server stack with automated content mana
 | **Transmission** | BitTorrent Client (VPN Protected) | `http://192.168.88.162:9091` | LoadBalancer | [Transmission README](apps/transmission/README.md) |
 | **Sonarr** | TV Series Management | `http://192.168.88.162:8989` | LoadBalancer | [Sonarr README](apps/sonarr/README.md) |
 | **Radarr** | Movie Management | `http://192.168.88.162:7878` | LoadBalancer | [Radarr README](apps/radarr/README.md) |
-| **Prowlarr** | Indexer Manager (Jackett Replacement) | `http://192.168.88.162:9117` | LoadBalancer | [Prowlarr README](apps/prowlarr/README.md) |
+| **Prowlarr** | Indexer Manager (Jackett Replacement) | `http://192.168.88.162:30996` | NodePort | [Prowlarr README](apps/prowlarr/README.md) |
 | **Pi-hole** | Network-wide DNS Ad Blocker | `http://192.168.88.167:31080/admin/` | NodePort | [Pi-hole README](apps/pihole/README.md) |
 | **Cloudflare Tunnel** | Secure Remote Access | External via Cloudflare | Tunnel | [Cloudflare Tunnel README](apps/cloudflare-tunnel/README.md) |
 | **Argo CD** | GitOps Kubernetes Management | `http://192.168.88.163:30080` | NodePort | [Argo CD README](apps/argocd/README.md) |
@@ -499,7 +500,7 @@ This K3s cluster hosts a complete media server stack with automated content mana
 - **Description**: Automated TV series collection and management
 - **Features**:
   - Automatic episode monitoring and downloading
-  - Integration with Transmission and Jackett
+  - Integration with Transmission and Prowlarr
   - Metadata and artwork management
   - Episode renaming and organization
 - **Storage**:
@@ -513,7 +514,7 @@ This K3s cluster hosts a complete media server stack with automated content mana
 - **Description**: Automated movie collection and management
 - **Features**:
   - Automatic movie monitoring and downloading
-  - Integration with Transmission and Jackett
+  - Integration with Transmission and Prowlarr
   - Quality profiles and release management
   - Movie metadata and artwork
 - **Storage**:
@@ -625,7 +626,7 @@ The media server uses NFS-based persistent storage with the following structure:
 ├── transmission/config/   # Transmission and VPN configuration
 ├── sonarr/config/         # Sonarr application data
 ├── radarr/config/         # Radarr application data
-├── jackett/config/        # Jackett indexer configurations
+├── prowlarr/config/       # Prowlarr indexer configurations
 ├── monitoring/            # Monitoring stack persistent storage
 │   ├── prometheus/        # Prometheus metrics data (20Gi, 15-day retention)
 │   └── grafana/           # Grafana dashboards and configuration (1Gi)
