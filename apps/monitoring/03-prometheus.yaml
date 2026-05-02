@@ -104,7 +104,7 @@ spec:
       serviceAccountName: prometheus
       containers:
         - name: prometheus
-          image: prom/prometheus:v3.11.2
+          image: prom/prometheus:v3.11.3
           ports:
             - containerPort: 9090
               name: web
