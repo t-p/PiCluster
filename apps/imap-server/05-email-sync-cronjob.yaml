@@ -8,7 +8,7 @@ metadata:
     app.kubernetes.io/name: email-sync
     app.kubernetes.io/component: sync-service
 spec:
-  schedule: "*/5 * * * *"  # Every 5 minutes
+  schedule: "*/1 * * * *"  # Every 1 minute
   concurrencyPolicy: Forbid  # Prevent overlapping jobs
   jobTemplate:
     spec:
