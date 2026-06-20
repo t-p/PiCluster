@@ -23,7 +23,7 @@ spec:
         spec:
           containers:
             - name: gravity-update
-              image: pihole/pihole:2026.05.0
+              image: pihole/pihole:2026.06.0
               command:
                 - /bin/sh
                 - -c
