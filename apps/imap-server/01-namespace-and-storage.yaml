@@ -24,5 +24,22 @@ spec:
     requests:
       storage: 10Gi
 ---
+# Storage for Tailscale state (keys/certificates)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: tailscale-state-pvc
+  namespace: email
+  labels:
+    app.kubernetes.io/name: imap-server
+    app.kubernetes.io/component: storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: nfs
+  resources:
+    requests:
+      storage: 100Mi
+---
 # Note: Additional secrets like imap-credentials, dovecot-users, dovecot-ssl,
 # aws-credentials, and tailscale secrets must be created manually for security

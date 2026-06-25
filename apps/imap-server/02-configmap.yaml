@@ -31,3 +31,24 @@ data:
       inbox = yes
       separator = /
     }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tailscale-serve-config
+  namespace: email
+  labels:
+    app.kubernetes.io/name: imap-server
+    app.kubernetes.io/component: configuration
+data:
+  serve-config.json: |
+    {
+      "TCP": {
+        "143": {
+          "TCPForward": "localhost:143"
+        },
+        "993": {
+          "TCPForward": "localhost:993"
+        }
+      }
+    }

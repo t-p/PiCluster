@@ -14,3 +14,8 @@ spec:
   valuesContent: |
     nodeSelector:
       kubernetes.io/hostname: node06
+    storageClass:
+      mountOptions:
+        - nolock
+        - soft
+        - timeo=30

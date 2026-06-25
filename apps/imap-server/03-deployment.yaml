@@ -89,9 +89,11 @@ spec:
             requests:
               cpu: 100m
               memory: 128Mi
+              ephemeral-storage: 100Mi
             limits:
               cpu: 500m
               memory: 512Mi
+              ephemeral-storage: 300Mi
 
           # Liveness probe
           livenessProbe:
@@ -132,20 +134,26 @@ spec:
               value: "192.168.88.0/24"
             - name: TS_STATE_DIR
               value: "/var/lib/tailscale"
+            - name: TS_SERVE_CONFIG
+              value: "/etc/tailscale/serve-config.json"
           securityContext:
             privileged: true
           volumeMounts:
             - name: tailscale-state
               mountPath: /var/lib/tailscale
+            - name: tailscale-serve-config
+              mountPath: /etc/tailscale
             - name: dev-net-tun
               mountPath: /dev/net/tun
           resources:
             requests:
               cpu: 50m
               memory: 64Mi
+              ephemeral-storage: 10Mi
             limits:
               cpu: 200m
               memory: 256Mi
+              ephemeral-storage: 100Mi
 
         # Email sync will be handled by a separate CronJob
 
@@ -169,7 +177,12 @@ spec:
             claimName: email-data-pvc
         # Tailscale state storage
         - name: tailscale-state
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: tailscale-state-pvc
+        # Tailscale serve config
+        - name: tailscale-serve-config
+          configMap:
+            name: tailscale-serve-config
         # TUN device for Tailscale
         - name: dev-net-tun
           hostPath:
