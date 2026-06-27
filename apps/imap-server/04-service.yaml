@@ -9,7 +9,7 @@ metadata:
     app.kubernetes.io/component: mail-server
 spec:
   type: LoadBalancer
-  externalTrafficPolicy: Local # Preserve source IP
+  externalTrafficPolicy: Cluster
   selector:
     app: imap-server
   ports:
