@@ -2,7 +2,7 @@
 
 Media request management UI for Jellyfin, Radarr, and Sonarr.
 
-- **Image**: `fallenbagel/jellyseerr:1.14.0`
+- **Image**: `fallenbagel/jellyseerr:2.7.3`
 - **Namespace**: `jellyseerr`
 - **Node**: `node06`
 - **Docs**: https://docs.jellyseerr.dev
