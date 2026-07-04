@@ -2,7 +2,7 @@
 
 PiCluster is a fully automated, self-hosted Kubernetes media server stack designed for Raspberry Pi clusters. Built on a Turing Pi 2.5 carrier board with four Raspberry Pi Compute Module 4 nodes, plus an additional standalone Raspberry Pi 5 as the control plane.
 
-This project provides manifests and configuration for running Jellyfin, Sonarr, Radarr, Transmission (with VPN), Prowlarr, Pi-hole DNS, Cloudflare Tunnel, and a modern dashboard—all orchestrated by K3s with GitOps via ArgoCD and backed by shared NFS storage. The hybrid architecture uses Compute Module 4s for worker nodes and a Raspberry Pi 5 for the control plane, providing optimal performance and reliability. PiCluster is ideal for homelab enthusiasts, edge computing, and anyone seeking a robust, private alternative to cloud-based media solutions.
+This project provides manifests and configuration for running Jellyfin, Jellyseerr, Sonarr, Radarr, Transmission (with VPN), Prowlarr, Pi-hole DNS, Cloudflare Tunnel, and a modern dashboard—all orchestrated by K3s with GitOps via ArgoCD and backed by shared NFS storage. The hybrid architecture uses Compute Module 4s for worker nodes and a Raspberry Pi 5 for the control plane, providing optimal performance and reliability. PiCluster is ideal for homelab enthusiasts, edge computing, and anyone seeking a robust, private alternative to cloud-based media solutions.
 
 ---
 
@@ -384,6 +384,7 @@ This K3s cluster hosts a complete media server stack with automated content mana
 | **Grafana** | Monitoring Dashboards (PostgreSQL Backend) | `http://192.168.88.126:30300` | NodePort | [Monitoring README](apps/monitoring/README.md) |
 | **Prometheus** | Metrics Collection | `http://192.168.88.126:30900` | NodePort | [Monitoring README](apps/monitoring/README.md) |
 | **n8n** | Workflow Automation & Integration | `http://192.168.88.126:32000` | NodePort | [n8n README](apps/n8n/README.md) |
+| **Jellyseerr** | Media Request Management | `http://192.168.88.126:30055` | NodePort | [Jellyseerr README](apps/jellyseerr/README.md) |
 
 ### Detailed Application Information
 
