@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: pathfinder
+  labels:
+    name: pathfinder
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pathfinder-data-pv
+  namespace: pathfinder
+spec:
+  capacity:
+    storage: 100Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: nfs
+  nfs:
+    server: 192.168.88.163
+    path: /mnt/storage/pathfinder/data
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pathfinder-data-pvc
+  namespace: pathfinder
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: nfs
+  resources:
+    requests:
+      storage: 100Gi
+  volumeName: pathfinder-data-pv
