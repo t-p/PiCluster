@@ -29,6 +29,8 @@ spec:
                   key: ethereum-url
             - name: PATHFINDER_DATA_DIRECTORY
               value: "/data"
+            - name: PATHFINDER_RPC_COMPILER_CONCURRENCY_LIMIT
+              value: "1"
           resources:
             requests:
               memory: "1Gi"
