@@ -68,12 +68,16 @@ spec:
               port: 8096
             initialDelaySeconds: 60
             periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 5
           readinessProbe:
             httpGet:
               path: /health
               port: 8096
             initialDelaySeconds: 30
             periodSeconds: 10
+            timeoutSeconds: 10
+            failureThreshold: 5
       volumes:
         - name: jellyfin-config
           persistentVolumeClaim:
