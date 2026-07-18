@@ -245,14 +245,12 @@ kubectl get nodes -o wide
 Expected output:
 ```
 NAME     STATUS   ROLES                  AGE   VERSION        INTERNAL-IP      EXTERNAL-IP   OS-IMAGE
-node01   Ready    worker                 1m    v1.32.6+k3s1   192.168.88.167   <none>        Debian GNU/Linux 12 (bookworm)  [CM4]
-node02   Ready    worker                 1m    v1.32.6+k3s1   192.168.88.164   <none>        Debian GNU/Linux 12 (bookworm)  [CM4]
-node03   Ready    worker                 1m    v1.32.6+k3s1   192.168.88.163   <none>        Debian GNU/Linux 12 (bookworm)  [CM4]
-node04   Ready    worker                 1m    v1.32.6+k3s1   192.168.88.162   <none>        Debian GNU/Linux 12 (bookworm)  [CM4]
-node05   Ready    control-plane,master   5m    v1.32.6+k3s1   192.168.88.126   <none>        Debian GNU/Linux 12 (bookworm)  [Pi5]
-node06   Ready    worker                 1m    v1.32.6+k3s1   192.168.88.83    <none>        Debian GNU/Linux 13 (trixie)    [Pi5]
-```
-node05   Ready    control-plane,master   5m    v1.32.6+k3s1   192.168.88.126   <none>        Debian GNU/Linux 12 (bookworm)  [Pi5]
+node01   Ready    worker                 1m    v1.36.2+k3s1   192.168.88.167   <none>        Debian GNU/Linux 12 (bookworm)  [CM4]
+node02   Ready    worker                 1m    v1.36.2+k3s1   192.168.88.164   <none>        Debian GNU/Linux 12 (bookworm)  [CM4]
+node03   Ready    worker                 1m    v1.36.2+k3s1   192.168.88.163   <none>        Debian GNU/Linux 12 (bookworm)  [CM4]
+node04   Ready    worker                 1m    v1.36.2+k3s1   192.168.88.162   <none>        Debian GNU/Linux 12 (bookworm)  [CM4]
+node05   Ready    control-plane,master   5m    v1.36.2+k3s1   192.168.88.126   <none>        Debian GNU/Linux 12 (bookworm)  [Pi5]
+node06   Ready    worker                 1m    v1.36.2+k3s1   192.168.88.83    <none>        Debian GNU/Linux 13 (trixie)    [Pi5]
 ```
 
 ## Storage Configuration (NFS)
@@ -385,6 +383,7 @@ This K3s cluster hosts a complete media server stack with automated content mana
 | **Prometheus** | Metrics Collection | `http://192.168.88.126:30900` | NodePort | [Monitoring README](apps/monitoring/README.md) |
 | **n8n** | Workflow Automation & Integration | `http://192.168.88.126:32000` | NodePort | [n8n README](apps/n8n/README.md) |
 | **Jellyseerr** | Media Request Management | `http://192.168.88.126:30055` | NodePort | [Jellyseerr README](apps/jellyseerr/README.md) |
+| **Pathfinder** | Starknet Full Node (RPC) | Internal ClusterIP `:9545` | ClusterIP | [Pathfinder README](apps/pathfinder/) |
 
 ### Detailed Application Information
 
@@ -580,6 +579,44 @@ This K3s cluster hosts a complete media server stack with automated content mana
 - **More info**: [apps/n8n/README.md](apps/n8n/README.md)
 
 
+
+#### 🏠 Homarr - Dashboard
+- **Namespace**: `dashboard`
+- **Description**: Modern home server dashboard for managing and monitoring all cluster services
+- **Features**:
+  - Unified view of all applications and services
+  - Real-time status indicators and widgets
+  - Configurable tiles with service integration
+  - WebSocket support for live updates
+- **Storage**: Config: NFS (`/mnt/storage/homarr/`)
+- **Access**: `http://192.168.88.126:31880` (NodePort)
+- **More info**: [apps/homarr/README.md](apps/homarr/README.md)
+
+#### 🎟️ Jellyseerr - Media Request Management
+- **Namespace**: `jellyseerr`
+- **Description**: Media request management UI integrating Jellyfin, Radarr, and Sonarr
+- **Features**:
+  - User-facing request portal for movies and TV shows
+  - Automatic approval and forwarding to Radarr/Sonarr
+  - Jellyfin library sync to prevent duplicate requests
+- **Storage**: Config: 250Mi NFS (`/mnt/storage/jellyseerr/config`)
+- **Node**: node06
+- **Access**: `http://192.168.88.126:30055`
+- **More info**: [apps/jellyseerr/README.md](apps/jellyseerr/README.md)
+
+#### ⛓️ Pathfinder - Starknet Full Node
+- **Namespace**: `pathfinder`
+- **Description**: Self-hosted Starknet full node providing a local JSON-RPC endpoint for self-custody operations
+- **Features**:
+  - Full Starknet state sync from Ethereum L1
+  - JSON-RPC API (StarkNet spec) on port 9545
+  - Sierra→CASM contract compilation
+  - Ethereum L1 anchor verification
+- **Storage**: 100Gi NFS (`/mnt/storage/pathfinder/data`) — grows to ~2TB at sync tip
+- **Node**: node02 (CM4)
+- **Access**: Internal ClusterIP only (`pathfinder.pathfinder.svc.cluster.local:9545`)
+- **Notes**: Sync ongoing — ~393k blocks behind tip as of initial deployment. mSATA SSD upgrade on node02 recommended for improved I/O performance.
+- **More info**: [apps/pathfinder/](apps/pathfinder/)
 
 #### 🚀 Argo CD - GitOps Kubernetes Management
 - **Namespace**: `argocd`
