@@ -49,13 +49,16 @@ spec:
               port: 5055
             initialDelaySeconds: 60
             periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 5
           readinessProbe:
             httpGet:
               path: /
               port: 5055
             initialDelaySeconds: 30
             periodSeconds: 10
-            failureThreshold: 3
+            timeoutSeconds: 10
+            failureThreshold: 5
       volumes:
         - name: jellyseerr-config
           persistentVolumeClaim:

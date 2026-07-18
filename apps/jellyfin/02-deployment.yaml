@@ -42,8 +42,8 @@ spec:
               memory: "1Gi"
               cpu: "500m"
             limits:
-              memory: "4Gi"
-              cpu: "2000m"
+              memory: "3Gi"
+              cpu: "1500m"
           volumeMounts:
             - name: jellyfin-config
               mountPath: /config
@@ -68,16 +68,16 @@ spec:
               port: 8096
             initialDelaySeconds: 60
             periodSeconds: 30
-            timeoutSeconds: 10
-            failureThreshold: 5
+            timeoutSeconds: 15
+            failureThreshold: 6
           readinessProbe:
             httpGet:
               path: /health
               port: 8096
             initialDelaySeconds: 30
             periodSeconds: 10
-            timeoutSeconds: 10
-            failureThreshold: 5
+            timeoutSeconds: 15
+            failureThreshold: 6
       volumes:
         - name: jellyfin-config
           persistentVolumeClaim:
