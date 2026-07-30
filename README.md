@@ -235,6 +235,10 @@ kubectl label node node02 node-role.kubernetes.io/worker=worker
 kubectl label node node03 node-role.kubernetes.io/worker=worker
 kubectl label node node04 node-role.kubernetes.io/worker=worker
 kubectl label node node06 node-role.kubernetes.io/worker=worker
+
+# Taint node03 as NFS-only — it owns all cluster storage and must not run workloads
+# that compete for memory (NFS swap = Jellyfin/media outage)
+kubectl taint nodes node03 dedicated=nfs:NoSchedule
 ```
 
 Verify cluster status:
