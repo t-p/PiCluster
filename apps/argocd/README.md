@@ -21,6 +21,8 @@ Argo CD is a declarative GitOps continuous delivery tool for Kubernetes. It watc
    kubectl apply -f 01-ingress.yaml
    kubectl apply -f 02-nodeport-service.yaml
    # (Add Argo CD core manifests if not already installed)
+   # Pin application-controller to node01
+   kubectl patch statefulset argocd-application-controller -n argocd --patch-file 04-application-controller-patch.yaml
    ```
 
 2. **Deploy Applications via Argo CD:**
@@ -45,6 +47,7 @@ Argo CD is a declarative GitOps continuous delivery tool for Kubernetes. It watc
 
 - `01-ingress.yaml` – Ingress and middleware for Argo CD UI (Traefik example)
 - `02-nodeport-service.yaml` – NodePort service for Argo CD UI
+- `04-application-controller-patch.yaml` – Pins the `argocd-application-controller` StatefulSet to **node01** (most spare resources)
 - `*-application.yaml` – Argo CD Application manifests for managed apps (Jellyfin, Monitoring, Pi-hole, Homarr, etc.)
 
 ## Example: Add a New Application
