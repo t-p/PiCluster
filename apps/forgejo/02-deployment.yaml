@@ -36,17 +36,6 @@ spec:
                     operator: In
                     values:
                       - node05
-      initContainers:
-        # Ensure /data is owned by git user (uid 1000)
-        - name: init-chown
-          image: busybox:1.37
-          command: ["chown", "-R", "1000:1000", "/data"]
-          volumeMounts:
-            - name: forgejo-data
-              mountPath: /data
-          securityContext:
-            runAsUser: 0
-            runAsNonRoot: false
       containers:
         - name: forgejo
           image: codeberg.org/forgejo/forgejo:16
@@ -158,8 +147,6 @@ spec:
             claimName: forgejo-data
       securityContext:
         fsGroup: 1000
-        runAsUser: 1000
-        runAsNonRoot: true
       restartPolicy: Always
 
 ---
