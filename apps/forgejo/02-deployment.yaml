@@ -93,7 +93,7 @@ spec:
                   key: internal-token
             # --- Service ---
             - name: FORGEJO__service__DISABLE_REGISTRATION
-              value: "false" # Set to true after creating your admin account
+              value: "true" # Locked after admin account creation
             - name: FORGEJO__service__REQUIRE_SIGNIN_VIEW
               value: "false"
             # --- Logging ---
