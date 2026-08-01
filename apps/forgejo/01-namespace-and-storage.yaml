@@ -1,0 +1,48 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: forgejo
+  labels:
+    app.kubernetes.io/name: forgejo
+    app.kubernetes.io/part-of: forgejo
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: forgejo-data
+  namespace: forgejo
+  labels:
+    app.kubernetes.io/name: forgejo
+    app.kubernetes.io/component: storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: nfs
+  resources:
+    requests:
+      storage: 10Gi
+
+---
+# Forgejo secrets - must be created manually before deploying, using a
+# dedicated `forgejo` Postgres role (not the shared postgres superuser):
+# kubectl create secret generic forgejo-secret -n forgejo \
+#   --from-literal=secret-key="$(openssl rand -hex 32)" \
+#   --from-literal=internal-token="$(openssl rand -hex 32)" \
+#   --from-literal=db-user="forgejo" \
+#   --from-literal=db-password="<password for the dedicated forgejo db role>"
+apiVersion: v1
+kind: Secret
+metadata:
+  name: forgejo-secret
+  namespace: forgejo
+  labels:
+    app.kubernetes.io/name: forgejo
+    app.kubernetes.io/component: config
+type: Opaque
+# data:
+#   secret-key: <base64-encoded-secret-key>
+#   internal-token: <base64-encoded-internal-token>
+#   db-user: <base64-encoded-db-user>
+#   db-password: <base64-encoded-db-password>
