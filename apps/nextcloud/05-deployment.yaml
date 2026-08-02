@@ -8,6 +8,7 @@ metadata:
     app: nextcloud
 spec:
   replicas: 1
+  revisionHistoryLimit: 5
   strategy:
     type: Recreate
   selector:

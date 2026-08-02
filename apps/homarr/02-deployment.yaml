@@ -8,7 +8,7 @@ metadata:
     app.kubernetes.io/instance: homarr
 spec:
   replicas: 1
-  revisionHistoryLimit: 3
+  revisionHistoryLimit: 5
   selector:
     matchLabels:
       app.kubernetes.io/name: homarr

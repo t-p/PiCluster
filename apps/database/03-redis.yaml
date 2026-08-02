@@ -121,6 +121,7 @@ metadata:
     component: cache
 spec:
   replicas: 1
+  revisionHistoryLimit: 5
   strategy:
     type: Recreate # Required for persistent volumes
   selector:
