@@ -1,16 +1,16 @@
 # IMAP Server
 
-Self-hosted IMAP email server with automated S3 email sync, running on Kubernetes with Tailscale VPN access.
+Self-hosted IMAP email server with automated S3 email sync, running on Kubernetes. Remote access is via the Cloudflare Zero Trust Private Network Route (see `apps/cloudflare-tunnel/README.md`), not a per-app VPN sidecar.
 
 ## Overview
 
-The IMAP server provides secure email access via IMAP protocol, automatically syncing emails from AWS S3 storage to local Maildir format. It includes VPN access via Tailscale for secure remote connections.
+The IMAP server provides secure email access via IMAP protocol, automatically syncing emails from AWS S3 storage to local Maildir format.
 
 ## Architecture
 
 - **IMAP Server**: Dovecot running on Alpine Linux
 - **Email Sync**: Automated S3 to Maildir sync via CronJob (every 5 minutes)
-- **VPN Access**: Tailscale sidecar for secure remote access
+- **Remote Access**: Cloudflare WARP client + Private Network Route to the cluster Service CIDR
 - **Storage**: NFS persistent storage for email data
 - **Deployment**: GitOps managed via ArgoCD
 
@@ -19,18 +19,17 @@ The IMAP server provides secure email access via IMAP protocol, automatically sy
 ### Core Services
 - **Dovecot IMAP**: Port 143, Alpine Linux with Dovecot
 - **Email Sync CronJob**: AWS CLI 2.15.30 (ARM compatible - pinned version)
-- **Tailscale VPN**: Sidecar container
 
 ### Configuration
 - **Namespace**: `email`
 - **Storage**: 10Gi NFS PVC (`email-data-pvc`)
-- **Secrets**: IMAP credentials, AWS credentials, Tailscale auth, SSL certificates
+- **Secrets**: IMAP credentials, AWS credentials, SSL certificates
 - **Schedule**: Email sync every 5 minutes
 
 ## Access
 
-- **IMAP**: Port 143 (plaintext, internal network only)
-- **VPN**: Accessible via Tailscale network as `picluster-email`
+- **IMAP**: Port 143 (plaintext), reachable only via ClusterIP — not exposed on the LAN
+- **Remote access**: WARP client enrolled in Zero Trust, routed via the Private Network Route directly to the ClusterIP `10.43.95.132` (`*.svc.cluster.local` DNS does not resolve from client devices — `.local` is a reserved mDNS TLD, intercepted before any configured DNS server)
 - **Management**: ArgoCD application for GitOps deployment
 
 ## Deployment
@@ -38,7 +37,6 @@ The IMAP server provides secure email access via IMAP protocol, automatically sy
 ### Prerequisites
 - Kubernetes cluster with NFS storage
 - AWS S3 bucket for email storage
-- Tailscale account and auth key
 - Required secrets (see below)
 
 ### Required Secrets
@@ -52,10 +50,6 @@ kubectl create secret generic aws-credentials -n email \
   --from-literal=access-key-id=<aws-key> \
   --from-literal=secret-access-key=<aws-secret> \
   --from-literal=s3-bucket=<bucket-name>
-
-# Tailscale auth
-kubectl create secret generic tailscale-auth -n email \
-  --from-literal=TS_AUTHKEY=<tailscale-key>
 
 # Dovecot users (passwd-file format)
 kubectl create secret generic dovecot-users -n email \
@@ -75,7 +69,6 @@ kubectl apply -f apps/argocd/imap-server-application.yaml
 ```bash
 kubectl apply -f apps/imap-server/01-namespace-and-storage.yaml
 kubectl apply -f apps/imap-server/02-configmap.yaml
-kubectl apply -f apps/imap-server/06-tailscale-rbac.yaml
 kubectl apply -f apps/imap-server/03-deployment.yaml
 kubectl apply -f apps/imap-server/04-service.yaml
 kubectl apply -f apps/imap-server/05-email-sync-cronjob.yaml
@@ -94,13 +87,13 @@ kubectl apply -f apps/imap-server/05-email-sync-cronjob.yaml
 - **Protocol**: IMAP only (port 143)
 - **Authentication**: passwd-file based
 - **Mail Location**: Maildir format
-- **SSL**: Disabled (VPN provides encryption)
+- **SSL**: Disabled (Cloudflare tunnel provides transport encryption for remote access; internal ClusterIP traffic is not exposed outside the cluster)
 - **Users**: Static UID/GID 5000
 
-### Tailscale VPN
-- **Hostname**: `picluster-email`
-- **Routes**: Advertises `192.168.88.0/24` cluster network
-- **Access**: Secure remote IMAP access via Tailscale network
+### Remote Access
+- **Route**: Cloudflare Zero Trust Private Network Route to the cluster Service CIDR (`10.43.0.0/16`)
+- **Name/address**: `10.43.95.132:143` (ClusterIP, used directly — not by name)
+- **Access**: WARP client, OTP-email enrollment
 
 ## Monitoring
 
@@ -115,9 +108,6 @@ kubectl logs -n email deployment/imap-server -c dovecot
 
 # Email sync logs
 kubectl logs -n email job/<job-name> -c aws-email-sync
-
-# Tailscale VPN logs
-kubectl logs -n email deployment/imap-server -c tailscale
 ```
 
 ### Status
@@ -142,7 +132,7 @@ kubectl get pods -n email
 
 **IMAP connection refused:**
 - Check Dovecot container logs for configuration errors
-- Verify port 143 is accessible via Tailscale network
+- Verify the WARP client's Private Network Route (`10.43.0.0/16`) is active and the client is in "Traffic and DNS mode" (not "Traffic only")
 - Ensure dovecot-config ConfigMap is properly mounted
 
 **No new emails syncing:**
@@ -150,22 +140,16 @@ kubectl get pods -n email
 - Verify AWS credentials and S3 bucket access
 - Check email sync job logs for errors
 
-**Tailscale connection issues:**
-- Verify TS_AUTHKEY secret is valid
-- Check Tailscale container logs for auth errors
-- Ensure proper RBAC permissions for Tailscale service account
-
 ### Resource Limits
 - **Dovecot**: 100m CPU / 128Mi RAM (requests), 500m CPU / 512Mi RAM (limits)
-- **Tailscale**: 50m CPU / 64Mi RAM (requests), 200m CPU / 256Mi RAM (limits)
 - **Email Sync**: 100m CPU / 128Mi RAM (requests), 500m CPU / 512Mi RAM (limits)
 
 ## Security
 
-- **Network**: Internal IMAP access only, VPN for remote access
+- **Network**: `ClusterIP` only; the Cloudflare tunnel's Private Network Route is the only path in
 - **Authentication**: Password-based IMAP auth via dovecot-users secret
-- **Encryption**: Tailscale provides transport encryption
-- **Isolation**: Dedicated namespace with RBAC permissions
+- **Encryption**: Cloudflare tunnel provides transport encryption
+- **Isolation**: Dedicated namespace
 - **Storage**: NFS with proper file permissions (UID/GID 5000)
 
 ## Maintenance

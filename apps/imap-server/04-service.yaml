@@ -8,8 +8,7 @@ metadata:
     app.kubernetes.io/name: imap-server
     app.kubernetes.io/component: mail-server
 spec:
-  type: LoadBalancer
-  externalTrafficPolicy: Cluster
+  type: ClusterIP
   selector:
     app: imap-server
   ports:

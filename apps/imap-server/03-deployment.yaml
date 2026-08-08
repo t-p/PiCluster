@@ -28,9 +28,6 @@ spec:
       securityContext:
         fsGroup: 5000
 
-      # Service account for Tailscale permissions
-      serviceAccountName: tailscale
-
       # Init container to set up directory structure
       initContainers:
         - name: init-directories
@@ -121,42 +118,6 @@ spec:
             runAsGroup: 0
             allowPrivilegeEscalation: false
 
-        # Tailscale sidecar container for VPN access
-        - name: tailscale
-          image: tailscale/tailscale:v1.102.2
-          env:
-            - name: TS_AUTHKEY
-              valueFrom:
-                secretKeyRef:
-                  name: tailscale-auth
-                  key: TS_AUTHKEY
-            - name: TS_HOSTNAME
-              value: "picluster-email"
-            - name: TS_ROUTES
-              value: "192.168.88.0/24"
-            - name: TS_STATE_DIR
-              value: "/var/lib/tailscale"
-            - name: TS_SERVE_CONFIG
-              value: "/etc/tailscale/serve-config.json"
-          securityContext:
-            privileged: true
-          volumeMounts:
-            - name: tailscale-state
-              mountPath: /var/lib/tailscale
-            - name: tailscale-serve-config
-              mountPath: /etc/tailscale
-            - name: dev-net-tun
-              mountPath: /dev/net/tun
-          resources:
-            requests:
-              cpu: 50m
-              memory: 64Mi
-              ephemeral-storage: 10Mi
-            limits:
-              cpu: 200m
-              memory: 256Mi
-              ephemeral-storage: 100Mi
-
         # Email sync will be handled by a separate CronJob
 
       # Volumes
@@ -177,15 +138,4 @@ spec:
         - name: maildir-storage
           persistentVolumeClaim:
             claimName: email-data-pvc
-        # Tailscale state storage
-        - name: tailscale-state
-          persistentVolumeClaim:
-            claimName: tailscale-state-pvc
-        # Tailscale serve config
-        - name: tailscale-serve-config
-          configMap:
-            name: tailscale-serve-config
-        # TUN device for Tailscale
-        - name: dev-net-tun
-          hostPath:
-            path: /dev/net/tun
+
