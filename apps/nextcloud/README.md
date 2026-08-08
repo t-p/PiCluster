@@ -1,26 +1,15 @@
 # Nextcloud Deployment
 
-Nextcloud deployment on Pi cluster with PostgreSQL, Redis, and Tailscale integration.
+Nextcloud deployment on Pi cluster with PostgreSQL and Redis. Remote access is via the Cloudflare Zero Trust Private Network Route (see `apps/cloudflare-tunnel/README.md`), not a per-app VPN sidecar.
 
 ## Prerequisites
 
-1. Tailscale auth key secret in the cluster
-2. PostgreSQL running in `database` namespace
-3. NFS storage provisioner configured
+1. PostgreSQL running in `database` namespace
+2. NFS storage provisioner configured
 
 ## Deployment Steps
 
-### 1. Create Tailscale Auth Secret
-
-If you don't already have the `tailscale-auth` secret in the nextcloud namespace:
-
-```bash
-kubectl create secret generic tailscale-auth \
-  --from-literal=TS_AUTHKEY=tskey-auth-YOUR-KEY-HERE \
-  --namespace=nextcloud
-```
-
-### 2. Update Secrets
+### 1. Update Secrets
 
 Edit `02-database-init.yaml` and change:
 - `CHANGE_ME_NEXTCLOUD_DB_PASSWORD` to a secure password
@@ -35,7 +24,6 @@ Edit `05-deployment.yaml` and change:
 kubectl apply -f 01-namespace-and-storage.yaml
 kubectl apply -f 02-database-init.yaml
 kubectl apply -f 03-redis.yaml
-kubectl apply -f 04-tailscale-rbac.yaml
 kubectl apply -f 05-deployment.yaml
 kubectl apply -f 06-service.yaml
 ```
@@ -54,24 +42,17 @@ kubectl apply -f ../argocd/nextcloud-application.yaml
 
 ## Access
 
-### Local Network
-- URL: `http://192.168.88.X:30080` (any node IP)
+- Service is `ClusterIP` only — not reachable from the LAN directly.
+- Remote/local access is via WARP client + Cloudflare Zero Trust Private Network Route to the Service CIDR (`10.43.0.0/16`), connecting directly to the ClusterIP `10.43.27.203`. See `apps/cloudflare-tunnel/README.md`.
+- Note: `*.svc.cluster.local` DNS does **not** work from client devices — `.local` is a reserved mDNS/Bonjour TLD, intercepted by the OS before any configured DNS server sees it. Use the ClusterIP directly.
 - Admin user: `admin`
 - Admin password: (as configured in deployment)
-
-### Tailscale
-1. Connect to your Tailscale network
-2. Access via: `http://192.168.88.X:30080`
-3. The Tailscale sidecar provides subnet routing for the 192.168.88.0/24 network
 
 ## Verification
 
 ```bash
 # Check pod status
 kubectl get pods -n nextcloud
-
-# Check Tailscale connection
-kubectl logs -n nextcloud deployment/nextcloud -c tailscale
 
 # Check Nextcloud logs
 kubectl logs -n nextcloud deployment/nextcloud -c nextcloud
@@ -86,15 +67,6 @@ kubectl logs -n nextcloud job/nextcloud-db-init
 
 # Verify database exists
 kubectl exec -n database deployment/postgres -- psql -U postgres -c "\l"
-```
-
-### Tailscale Not Connecting
-```bash
-# Check Tailscale logs
-kubectl logs -n nextcloud deployment/nextcloud -c tailscale
-
-# Verify auth key is valid
-kubectl get secret tailscale-auth -n nextcloud -o yaml
 ```
 
 ### Storage Issues

@@ -19,7 +19,6 @@ spec:
       labels:
         app: nextcloud
     spec:
-      serviceAccountName: tailscale
       securityContext:
         fsGroup: 33
       containers:
@@ -59,7 +58,7 @@ spec:
                   name: nextcloud-admin-secret
                   key: admin-password
             - name: NEXTCLOUD_TRUSTED_DOMAINS
-              value: "192.168.88.0/24 picluster-nextcloud"
+              value: "10.43.27.203 picluster-nextcloud"
             - name: TZ
               value: "UTC"
           volumeMounts:
@@ -96,34 +95,6 @@ spec:
           #   initialDelaySeconds: 180
           #   periodSeconds: 15
           #   timeoutSeconds: 5
-        - name: tailscale
-          image: tailscale/tailscale:v1.102.2
-          env:
-            - name: TS_AUTHKEY
-              valueFrom:
-                secretKeyRef:
-                  name: tailscale-auth
-                  key: TS_AUTHKEY
-            - name: TS_HOSTNAME
-              value: "picluster-nextcloud"
-            - name: TS_ROUTES
-              value: "192.168.88.0/24"
-            - name: TS_STATE_DIR
-              value: "/var/lib/tailscale"
-          securityContext:
-            privileged: true
-          volumeMounts:
-            - name: tailscale-state
-              mountPath: /var/lib/tailscale
-            - name: dev-net-tun
-              mountPath: /dev/net/tun
-          resources:
-            requests:
-              cpu: 50m
-              memory: 64Mi
-            limits:
-              cpu: 200m
-              memory: 256Mi
       volumes:
         - name: nextcloud-data
           persistentVolumeClaim:
@@ -131,10 +102,5 @@ spec:
         - name: nextcloud-config
           persistentVolumeClaim:
             claimName: nextcloud-config-pvc
-        - name: tailscale-state
-          emptyDir: {}
-        - name: dev-net-tun
-          hostPath:
-            path: /dev/net/tun
       nodeSelector:
         kubernetes.io/hostname: node06

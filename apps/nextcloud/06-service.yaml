@@ -7,11 +7,10 @@ metadata:
   labels:
     app: nextcloud
 spec:
-  type: NodePort
+  type: ClusterIP
   ports:
     - port: 80
       targetPort: 80
-      nodePort: 30081
       protocol: TCP
       name: http
   selector:
