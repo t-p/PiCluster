@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: pathfinder
-          image: eqlabs/pathfinder:v0.22.7
+          image: eqlabs/pathfinder:v0.23.1
           ports:
             - containerPort: 9545
               name: rpc
