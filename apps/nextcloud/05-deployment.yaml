@@ -58,7 +58,7 @@ spec:
                   name: nextcloud-admin-secret
                   key: admin-password
             - name: NEXTCLOUD_TRUSTED_DOMAINS
-              value: "10.43.27.203 picluster-nextcloud"
+              value: "10.43.27.203 picluster-nextcloud nextcloud.pfeiffer.pw"
             - name: TZ
               value: "UTC"
           volumeMounts:
