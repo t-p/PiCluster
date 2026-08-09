@@ -55,6 +55,10 @@ spec:
       containers:
         - name: dind
           image: docker:27-dind
+          command:
+            - dockerd-entrypoint.sh
+            - --host=tcp://0.0.0.0:2375
+            - --host=unix:///var/run/docker.sock
           securityContext:
             privileged: true # Required for Docker-in-Docker
           env:
@@ -90,6 +94,10 @@ spec:
                   --labels "$GITEA_RUNNER_LABELS" \
                   --config /data/config.yml
               fi
+              until nc -z localhost 2375 2>/dev/null; do
+                echo "waiting for docker daemon..."
+                sleep 2
+              done
               exec forgejo-runner daemon --config /data/config.yml
           env:
             - name: DOCKER_HOST
