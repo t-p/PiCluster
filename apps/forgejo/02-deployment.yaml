@@ -96,6 +96,9 @@ spec:
               value: "true" # Locked after admin account creation
             - name: FORGEJO__service__REQUIRE_SIGNIN_VIEW
               value: "false"
+            # --- Actions (CI/CD via act_runner) ---
+            - name: FORGEJO__actions__ENABLED
+              value: "true"
             # --- Logging ---
             - name: FORGEJO__log__LEVEL
               value: "Info"
