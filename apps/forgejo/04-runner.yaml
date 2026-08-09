@@ -59,6 +59,14 @@ spec:
             - dockerd-entrypoint.sh
             - --host=tcp://0.0.0.0:2375
             - --host=unix:///var/run/docker.sock
+            # The outer pod's real network path (k3s/flannel overlay) only
+            # supports MTU 1450, but dockerd's default bridge assumes 1500
+            # unless told otherwise. That mismatch made job containers
+            # advertise an MSS too large for the real path, and depended on
+            # PMTU discovery (an ICMP round-trip) to correct it -- which some
+            # CDNs silently drop, causing large downloads to randomly stall.
+            # Telling dockerd the truth here avoids needing PMTUD at all.
+            - --mtu=1450
           securityContext:
             privileged: true # Required for Docker-in-Docker
           env:
