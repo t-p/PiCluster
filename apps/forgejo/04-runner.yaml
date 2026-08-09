@@ -78,6 +78,9 @@ spec:
             - -c
             - |
               set -e
+              if [ ! -f /data/config.yml ]; then
+                forgejo-runner generate-config > /data/config.yml
+              fi
               if [ ! -f /data/.runner ]; then
                 forgejo-runner register \
                   --no-interactive \
