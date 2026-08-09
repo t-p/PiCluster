@@ -1,11 +1,8 @@
 ---
-# act_runner (Forgejo Actions runner) -- executes CI/CD workflows defined in
-# .forgejo/workflows/ in any repo on this instance. Runs jobs as sibling
-# Docker containers via a Docker-in-Docker sidecar (no access to the host's
-# real Docker daemon, so this can't touch other workloads in the cluster).
+# act_runner (Forgejo Actions runner). Runs jobs as sibling Docker containers
+# via a Docker-in-Docker sidecar.
 #
-# Registration token secret -- must be created manually before deploying
-# (regenerate any time with a fresh token, this one's single-use up front):
+# Registration token secret, created manually:
 #   kubectl exec -n forgejo deploy/forgejo -- \
 #     su-exec git forgejo forgejo-cli actions generate-runner-token
 #   kubectl create secret generic act-runner-secret -n forgejo \
@@ -49,7 +46,7 @@ spec:
         app.kubernetes.io/name: act-runner
         app.kubernetes.io/component: ci-runner
     spec:
-      # Pin to node05 (Pi 5) -- same node as Forgejo, heaviest workload node
+      # Pin to node05 (Pi 5)
       nodeSelector:
         kubernetes.io/hostname: node05
       containers:
@@ -59,13 +56,8 @@ spec:
             - dockerd-entrypoint.sh
             - --host=tcp://0.0.0.0:2375
             - --host=unix:///var/run/docker.sock
-            # The outer pod's real network path (k3s/flannel overlay) only
-            # supports MTU 1450, but dockerd's default bridge assumes 1500
-            # unless told otherwise. That mismatch made job containers
-            # advertise an MSS too large for the real path, and depended on
-            # PMTU discovery (an ICMP round-trip) to correct it -- which some
-            # CDNs silently drop, causing large downloads to randomly stall.
-            # Telling dockerd the truth here avoids needing PMTUD at all.
+            # Matches k3s/flannel's real overlay MTU -- see PiCluster commit
+            # history for why (PMTU black hole on large downloads otherwise).
             - --mtu=1450
           securityContext:
             privileged: true # Required for Docker-in-Docker
@@ -74,10 +66,13 @@ spec:
               value: "" # Disable TLS -- loopback-only, not exposed outside the pod
           resources:
             requests:
-              cpu: 100m
+              cpu: 200m
               memory: 256Mi
             limits:
-              cpu: 1000m
+              cpu: 3000m # was 1000m -- cgroup showed real throttling (dind
+                         # handles all job-container networking, so getting
+                         # throttled here can look like a network stall from
+                         # outside). Node has 4 cores, mostly idle.
               memory: 1Gi
           volumeMounts:
             - name: docker-data
