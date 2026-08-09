@@ -73,6 +73,21 @@ spec:
 
         - name: runner
           image: code.forgejo.org/forgejo/runner:6.3.1
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+              if [ ! -f /data/.runner ]; then
+                forgejo-runner register \
+                  --no-interactive \
+                  --instance "$GITEA_INSTANCE_URL" \
+                  --token "$GITEA_RUNNER_REGISTRATION_TOKEN" \
+                  --name "$GITEA_RUNNER_NAME" \
+                  --labels "$GITEA_RUNNER_LABELS" \
+                  --config /data/config.yml
+              fi
+              exec forgejo-runner daemon --config /data/config.yml
           env:
             - name: DOCKER_HOST
               value: "tcp://localhost:2375"
