@@ -1,0 +1,106 @@
+---
+# act_runner (Forgejo Actions runner) -- executes CI/CD workflows defined in
+# .forgejo/workflows/ in any repo on this instance. Runs jobs as sibling
+# Docker containers via a Docker-in-Docker sidecar (no access to the host's
+# real Docker daemon, so this can't touch other workloads in the cluster).
+#
+# Registration token secret -- must be created manually before deploying
+# (regenerate any time with a fresh token, this one's single-use up front):
+#   kubectl exec -n forgejo deploy/forgejo -- \
+#     su-exec git forgejo forgejo-cli actions generate-runner-token
+#   kubectl create secret generic act-runner-secret -n forgejo \
+#     --from-literal=registration-token="<token>"
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: act-runner-data
+  namespace: forgejo
+  labels:
+    app.kubernetes.io/name: act-runner
+    app.kubernetes.io/component: storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: nfs
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: act-runner
+  namespace: forgejo
+  labels:
+    app.kubernetes.io/name: act-runner
+    app.kubernetes.io/component: ci-runner
+spec:
+  replicas: 1
+  revisionHistoryLimit: 5
+  strategy:
+    type: Recreate # Required for persistent volume (runner registration state)
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: act-runner
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: act-runner
+        app.kubernetes.io/component: ci-runner
+    spec:
+      # Pin to node05 (Pi 5) -- same node as Forgejo, heaviest workload node
+      nodeSelector:
+        kubernetes.io/hostname: node05
+      containers:
+        - name: dind
+          image: docker:27-dind
+          securityContext:
+            privileged: true # Required for Docker-in-Docker
+          env:
+            - name: DOCKER_TLS_CERTDIR
+              value: "" # Disable TLS -- loopback-only, not exposed outside the pod
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+          volumeMounts:
+            - name: docker-data
+              mountPath: /var/lib/docker
+
+        - name: runner
+          image: code.forgejo.org/forgejo/runner:6.3.1
+          env:
+            - name: DOCKER_HOST
+              value: "tcp://localhost:2375"
+            - name: GITEA_INSTANCE_URL
+              value: "http://forgejo.forgejo.svc.cluster.local:3000"
+            - name: GITEA_RUNNER_REGISTRATION_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: act-runner-secret
+                  key: registration-token
+            - name: GITEA_RUNNER_NAME
+              value: "picluster-node05"
+            - name: GITEA_RUNNER_LABELS
+              value: "docker:docker://node:20-bullseye"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+          volumeMounts:
+            - name: runner-data
+              mountPath: /data
+      volumes:
+        - name: docker-data
+          emptyDir: {}
+        - name: runner-data
+          persistentVolumeClaim:
+            claimName: act-runner-data
+      restartPolicy: Always
