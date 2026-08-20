@@ -1,0 +1,131 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: paperless
+  namespace: paperless
+  labels:
+    app.kubernetes.io/name: paperless
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: paperless
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: paperless
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: node06
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: paperless
+          image: ghcr.io/paperless-ngx/paperless-ngx:3.0.5
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - name: PAPERLESS_REDIS
+              value: redis://redis.database.svc.cluster.local:6379
+            - name: PAPERLESS_DBHOST
+              value: postgres.database.svc.cluster.local
+            - name: PAPERLESS_DBPORT
+              value: "5432"
+            - name: PAPERLESS_DBNAME
+              valueFrom:
+                secretKeyRef:
+                  name: paperless-secret
+                  key: database-name
+            - name: PAPERLESS_DBUSER
+              valueFrom:
+                secretKeyRef:
+                  name: paperless-secret
+                  key: database-user
+            - name: PAPERLESS_DBPASS
+              valueFrom:
+                secretKeyRef:
+                  name: paperless-secret
+                  key: database-password
+            - name: PAPERLESS_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: paperless-secret
+                  key: secret-key
+            - name: PAPERLESS_URL
+              value: https://paperless.pfeiffer.pw
+            - name: PAPERLESS_TIME_ZONE
+              value: Europe/Amsterdam
+            - name: PAPERLESS_OCR_LANGUAGE
+              value: eng
+            - name: PAPERLESS_CONSUMPTION_DIR
+              value: /usr/src/paperless/media/consume
+            - name: PAPERLESS_EXPORT_DIR
+              value: /usr/src/paperless/media/export
+            - name: PAPERLESS_ADMIN_USER
+              valueFrom:
+                secretKeyRef:
+                  name: paperless-secret
+                  key: admin-user
+            - name: PAPERLESS_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: paperless-secret
+                  key: admin-password
+            - name: PAPERLESS_ADMIN_MAIL
+              valueFrom:
+                secretKeyRef:
+                  name: paperless-secret
+                  key: admin-mail
+          volumeMounts:
+            - name: data
+              mountPath: /usr/src/paperless/data
+            - name: documents
+              mountPath: /usr/src/paperless/media
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 2Gi
+          startupProbe:
+            httpGet:
+              path: /api/
+              port: http
+            periodSeconds: 10
+            failureThreshold: 30
+          readinessProbe:
+            httpGet:
+              path: /api/
+              port: http
+            periodSeconds: 15
+          livenessProbe:
+            httpGet:
+              path: /api/
+              port: http
+            periodSeconds: 30
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: paperless-data
+        - name: documents
+          persistentVolumeClaim:
+            claimName: paperless-documents
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: paperless-web
+  namespace: paperless
+spec:
+  selector:
+    app.kubernetes.io/name: paperless
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http

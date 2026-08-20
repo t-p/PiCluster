@@ -41,3 +41,8 @@ kubeconfig
 # Backup files
 *.bak
 *.backup
+
+# other stuff
+CONTEXT.md
+scripts/
+docs/
