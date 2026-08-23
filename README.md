@@ -373,8 +373,9 @@ This K3s cluster hosts a complete media server stack with automated content mana
 | **Homarr** | Modern Dashboard & Service Management | `http://192.168.88.126:31880` | NodePort | [Homarr README](apps/homarr/README.md) |
 | **Jellyfin** | Media Server & Streaming | `http://192.168.88.126:8096` | LoadBalancer | [Jellyfin README](apps/jellyfin/README.md) |
 | **Immich** | Self-hosted Photo & Video Management | `http://192.168.88.126:31283` | NodePort | [Immich README](apps/immich/README.md) |
-| **Nextcloud** | File Sync & Share Platform | `http://192.168.88.126:30080` | NodePort | [Nextcloud README](apps/nextcloud/README.md) |
-| **IMAP Server** | Self-hosted Email Server with S3 Sync | `picluster-email:143` (Tailscale) | LoadBalancer | [IMAP Server README](apps/imap-server/README.md) |
+| **Nextcloud** | File Sync & Share Platform | Cloudflare Access / ClusterIP | ClusterIP | [Nextcloud README](apps/nextcloud/README.md) |
+| **Paperless-ngx** | Document Management & OCR | `https://paperless.pfeiffer.pw` | Cloudflare Tunnel | [Paperless README](apps/paperless/README.md) |
+| **IMAP Server** | Self-hosted Email Server with S3 Sync | ClusterIP `10.43.95.132:143` via WARP | ClusterIP | [IMAP Server README](apps/imap-server/README.md) |
 | **Database** | Shared PostgreSQL & Redis Services | Internal Only | ClusterIP | [Database README](apps/database/README.md) |
 | **Transmission** | BitTorrent Client (VPN Protected) | `http://192.168.88.162:9091` | LoadBalancer | [Transmission README](apps/transmission/README.md) |
 | **Sonarr** | TV Series Management | `http://192.168.88.162:8989` | LoadBalancer | [Sonarr README](apps/sonarr/README.md) |
@@ -427,42 +428,51 @@ This K3s cluster hosts a complete media server stack with automated content mana
 
 #### ☁️ Nextcloud - File Sync & Share Platform
 - **Namespace**: `nextcloud`
-- **Description**: Self-hosted file sync and share platform with Tailscale VPN integration
+- **Description**: Self-hosted file sync and share platform
 - **Features**:
   - File synchronization across devices
   - Web interface and desktop/mobile clients
   - Calendar, contacts, and collaboration tools
-  - Secure remote access via Tailscale VPN
+  - Cloudflare Access for browser access
   - PostgreSQL database backend
   - Redis caching for performance
 - **Storage**:
   - Config: 1Gi NFS
   - Data: 50Gi NFS
   - Database: Shared PostgreSQL (database namespace)
-- **Access**: 
-  - Local: `http://192.168.88.126:30080` (NodePort)
-  - Remote: Via Tailscale VPN subnet routing
+- **Access**: Cloudflare published hostname for browsers; WARP clients can connect directly to the ClusterIP (`10.43.27.203`)
 - **More info**: [apps/nextcloud/README.md](apps/nextcloud/README.md)
+
+#### 📄 Paperless-ngx - Document Management
+- **Namespace**: `paperless`
+- **Description**: Self-hosted document management with OCR and full-text search
+- **Features**:
+  - Document ingestion, tagging, and search
+  - OCR and searchable document content
+  - Shared PostgreSQL and Redis services
+  - Cloudflare Tunnel access at `https://paperless.pfeiffer.pw`
+- **Storage**:
+  - Application data: 1Gi NFS
+  - Documents: 10Gi NFS
+- **Deployment**: ArgoCD application; database role, database, and application secret require one-time setup
+- **More info**: [apps/paperless/README.md](apps/paperless/README.md)
 
 #### 📧 IMAP Server - Self-hosted Email Server
 - **Namespace**: `email`
-- **Description**: Self-hosted IMAP email server with automated S3 email sync and VPN access
+- **Description**: Self-hosted IMAP email server with automated S3 email sync
 - **Features**:
-  - Dovecot IMAP server for secure email access
+  - Dovecot IMAP server for email access
   - Automated S3 to Maildir email synchronization every 5 minutes
-  - Tailscale VPN integration for secure remote access
   - AWS SES integration for incoming email processing
   - Maildir format storage with proper permissions
   - State tracking to prevent duplicate email downloads
 - **Storage**:
   - Config: Dovecot configuration via ConfigMap
   - Email Data: `/mnt/storage/email/` (NFS persistent storage)
-  - State: Email sync tracking via persistent volume
-- **Access**: `picluster-email:143` via Tailscale network (IMAP protocol)
+- **Access**: ClusterIP `10.43.95.132:143` via the Cloudflare Zero Trust Private Network Route and WARP
 - **Components**:
   - Dovecot IMAP server (port 143)
   - AWS CLI email sync CronJob (pinned to v2.15.30 for ARM compatibility)
-  - Tailscale VPN sidecar for secure remote access
 - **More info**: [apps/imap-server/README.md](apps/imap-server/README.md)
 
 #### 🗄️ Database - Shared Database Services
@@ -704,6 +714,7 @@ kubectl apply -f apps/database/
 kubectl apply -f apps/jellyfin/
 kubectl apply -f apps/immich/
 kubectl apply -f apps/nextcloud/
+kubectl apply -f apps/paperless/
 kubectl apply -f apps/imap-server/
 kubectl apply -f apps/prowlarr/
 kubectl apply -f apps/transmission/
