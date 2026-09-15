@@ -9,7 +9,7 @@ metadata:
     component: gravity-update
 spec:
   schedule: "0 2 * * *"
-  concurrencyPolicy: Allow
+  concurrencyPolicy: Forbid
   suspend: false
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 1

@@ -12,7 +12,6 @@ data:
   CORS_HOSTS: ""
   CUSTOM_CACHE_SIZE: "10000"
   DNS1: "192.168.88.1"
-  DNS2: "1.1.1.1"
   DNSMASQ_LISTENING: "all"
   DNSMASQ_LOG_ASYNC: "true"
   DNSMASQ_OPTS: "--local-service=false --bogus-priv=false"

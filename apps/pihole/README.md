@@ -6,7 +6,6 @@ Pi-hole provides network-wide DNS ad blocking and filtering for the entire clust
 
 Pi-hole runs as a single container deployment with:
 - **Primary DNS**: Router (192.168.88.1) with NextDNS DoH integration
-- **Fallback DNS**: Cloudflare (1.1.1.1)
 - **DNSSEC**: Disabled (handled by router)
 - **Caching**: Pi-hole provides DNS caching for improved performance
 
@@ -24,7 +23,6 @@ Pi-hole runs as a single container deployment with:
 ### DNS Servers
 Pi-hole is configured to use:
 1. **Router (192.168.88.1)**: Primary DNS with NextDNS DoH integration
-2. **Cloudflare (1.1.1.1)**: Fallback DNS server
 
 ### Storage
 - **Config**: `/mnt/storage/pihole/` (NFS persistent storage)
