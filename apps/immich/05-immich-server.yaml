@@ -80,7 +80,7 @@ spec:
             - name: MACHINE_LEARNING_ENABLED
               value: "true"
             - name: MACHINE_LEARNING_URL
-              value: "http://immich-ml:3003"
+              value: "http://immich-machine-learning:3003"
 
             # Server configuration
             - name: SERVER_EXTERNAL_DOMAIN
@@ -316,7 +316,7 @@ data:
       },
       "machineLearning": {
         "enabled": true,
-        "url": "http://immich-ml:3003",
+        "url": "http://immich-machine-learning:3003",
         "clip": {
           "enabled": true,
           "modelName": "ViT-B-32::openai"
