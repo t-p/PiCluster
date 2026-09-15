@@ -86,6 +86,12 @@ spec:
               value: "0"
             - name: HF_HUB_DISABLE_TELEMETRY
               value: "1"
+            - name: HOME
+              value: "/cache"
+            - name: HF_HOME
+              value: "/cache/.huggingface"
+            - name: HF_XET_CACHE
+              value: "/cache/.cache/xet"
           # Resource limits optimized for Pi 5 performance
           resources:
             requests:
