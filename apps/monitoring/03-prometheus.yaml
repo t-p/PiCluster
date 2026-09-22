@@ -42,6 +42,23 @@ data:
           - action: labelmap
             regex: __meta_kubernetes_node_label_(.+)
 
+      # MikroTik SNMP via snmp-exporter
+      - job_name: "mikrotik-snmp"
+        metrics_path: /snmp
+        params:
+          auth: [routeros]
+          module: [if_mib]
+        static_configs:
+          - targets:
+              - 192.168.88.1
+        relabel_configs:
+          - source_labels: [__address__]
+            target_label: __param_target
+          - source_labels: [__param_target]
+            target_label: instance
+          - target_label: __address__
+            replacement: snmp-exporter.monitoring.svc.cluster.local:9116
+
       # Kubernetes pods with prometheus.io/scrape annotation
       - job_name: "kubernetes-pods"
         kubernetes_sd_configs:
@@ -119,7 +136,7 @@ spec:
             - "--storage.tsdb.path=/prometheus"
             - "--web.console.libraries=/etc/prometheus/console_libraries"
             - "--web.console.templates=/etc/prometheus/consoles"
-            - "--storage.tsdb.retention.time=15d"
+            - "--storage.tsdb.retention.time=90d"
             - "--web.enable-lifecycle"
       volumes:
         - name: config
