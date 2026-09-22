@@ -24,7 +24,7 @@ spec:
         fsGroup: 1000
       containers:
         - name: paperless
-          image: ghcr.io/paperless-ngx/paperless-ngx:3.0.5
+          image: ghcr.io/paperless-ngx/paperless-ngx:3.2.1
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
