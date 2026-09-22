@@ -4,9 +4,8 @@ updates:
   - package-ecosystem: "docker"
     directory: "/apps/argocd"
     schedule:
-      interval: "weekly"
-      day: "saturday"
-      time: "08:00"
+      interval: "daily"
+      time: "03:00"
     open-pull-requests-limit: 10
     labels:
       - "dependencies"
@@ -15,9 +14,8 @@ updates:
   - package-ecosystem: "docker"
     directory: "/apps/cloudflare-tunnel"
     schedule:
-      interval: "weekly"
-      day: "saturday"
-      time: "08:00"
+      interval: "daily"
+      time: "03:00"
     open-pull-requests-limit: 10
     labels:
       - "dependencies"
@@ -26,9 +24,8 @@ updates:
   - package-ecosystem: "docker"
     directory: "/apps/database"
     schedule:
-      interval: "weekly"
-      day: "saturday"
-      time: "08:00"
+      interval: "daily"
+      time: "03:00"
     open-pull-requests-limit: 10
     labels:
       - "dependencies"
@@ -37,9 +34,8 @@ updates:
   - package-ecosystem: "docker"
     directory: "/apps/homarr"
     schedule:
-      interval: "weekly"
-      day: "saturday"
-      time: "08:00"
+      interval: "daily"
+      time: "03:00"
     open-pull-requests-limit: 10
     labels:
       - "dependencies"
@@ -48,9 +44,8 @@ updates:
   - package-ecosystem: "docker"
     directory: "/apps/imap-server"
     schedule:
-      interval: "weekly"
-      day: "saturday"
-      time: "08:00"
+      interval: "daily"
+      time: "03:00"
     open-pull-requests-limit: 10
     labels:
       - "dependencies"
@@ -64,9 +59,8 @@ updates:
   - package-ecosystem: "docker"
     directory: "/apps/immich"
     schedule:
-      interval: "weekly"
-      day: "saturday"
-      time: "08:00"
+      interval: "daily"
+      time: "03:00"
     open-pull-requests-limit: 10
     labels:
       - "dependencies"
@@ -75,9 +69,8 @@ updates:
   - package-ecosystem: "docker"
     directory: "/apps/jellyfin"
     schedule:
-      interval: "weekly"
-      day: "saturday"
-      time: "08:00"
+      interval: "daily"
+      time: "03:00"
     open-pull-requests-limit: 10
     labels:
       - "dependencies"
@@ -86,9 +79,8 @@ updates:
   - package-ecosystem: "docker"
     directory: "/apps/monitoring"
     schedule:
-      interval: "weekly"
-      day: "saturday"
-      time: "08:00"
+      interval: "daily"
+      time: "03:00"
     open-pull-requests-limit: 10
     labels:
       - "dependencies"
@@ -97,86 +89,8 @@ updates:
   - package-ecosystem: "docker"
     directory: "/apps/n8n"
     schedule:
-      interval: "weekly"
-      day: "saturday"
-      time: "08:00"
-    open-pull-requests-limit: 10
-    labels:
-      - "dependencies"
-      - "kubernetes"
-
-  - package-ecosystem: "docker"
-    directory: "/apps/pathfinder"
-    schedule:
-      interval: "weekly"
-      day: "saturday"
-      time: "08:00"
-    open-pull-requests-limit: 10
-    labels:
-      - "dependencies"
-      - "kubernetes"
-
-  - package-ecosystem: "docker"
-    directory: "/apps/pihole"
-    schedule:
-      interval: "weekly"
-      day: "saturday"
-      time: "08:00"
-    open-pull-requests-limit: 10
-    labels:
-      - "dependencies"
-      - "kubernetes"
-
-  - package-ecosystem: "docker"
-    directory: "/apps/prowlarr"
-    schedule:
-      interval: "weekly"
-      day: "saturday"
-      time: "08:00"
-    open-pull-requests-limit: 10
-    labels:
-      - "dependencies"
-      - "kubernetes"
-
-  - package-ecosystem: "docker"
-    directory: "/apps/radarr"
-    schedule:
-      interval: "weekly"
-      day: "saturday"
-      time: "08:00"
-    open-pull-requests-limit: 10
-    labels:
-      - "dependencies"
-      - "kubernetes"
-
-  - package-ecosystem: "docker"
-    directory: "/apps/shared-storage"
-    schedule:
-      interval: "weekly"
-      day: "saturday"
-      time: "08:00"
-    open-pull-requests-limit: 10
-    labels:
-      - "dependencies"
-      - "kubernetes"
-
-  - package-ecosystem: "docker"
-    directory: "/apps/sonarr"
-    schedule:
-      interval: "weekly"
-      day: "saturday"
-      time: "08:00"
-    open-pull-requests-limit: 10
-    labels:
-      - "dependencies"
-      - "kubernetes"
-
-  - package-ecosystem: "docker"
-    directory: "/apps/transmission"
-    schedule:
-      interval: "weekly"
-      day: "saturday"
-      time: "08:00"
+      interval: "daily"
+      time: "03:00"
     open-pull-requests-limit: 10
     labels:
       - "dependencies"
@@ -185,9 +99,98 @@ updates:
   - package-ecosystem: "docker"
     directory: "/apps/nextcloud"
     schedule:
-      interval: "weekly"
-      day: "saturday"
-      time: "08:00"
+      interval: "daily"
+      time: "03:00"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "kubernetes"
+
+  - package-ecosystem: "docker"
+    directory: "/apps/flaresolverr"
+    schedule:
+      interval: "daily"
+      time: "03:00"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "kubernetes"
+
+  - package-ecosystem: "docker"
+    directory: "/apps/forgejo"
+    schedule:
+      interval: "daily"
+      time: "03:00"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "kubernetes"
+
+  - package-ecosystem: "docker"
+    directory: "/apps/paperless"
+    schedule:
+      interval: "daily"
+      time: "03:00"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "kubernetes"
+
+  - package-ecosystem: "docker"
+    directory: "/apps/pihole"
+    schedule:
+      interval: "daily"
+      time: "03:00"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "kubernetes"
+
+  - package-ecosystem: "docker"
+    directory: "/apps/prowlarr"
+    schedule:
+      interval: "daily"
+      time: "03:00"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "kubernetes"
+
+  - package-ecosystem: "docker"
+    directory: "/apps/radarr"
+    schedule:
+      interval: "daily"
+      time: "03:00"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "kubernetes"
+
+  - package-ecosystem: "docker"
+    directory: "/apps/shared-storage"
+    schedule:
+      interval: "daily"
+      time: "03:00"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "kubernetes"
+
+  - package-ecosystem: "docker"
+    directory: "/apps/sonarr"
+    schedule:
+      interval: "daily"
+      time: "03:00"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "kubernetes"
+
+  - package-ecosystem: "docker"
+    directory: "/apps/transmission"
+    schedule:
+      interval: "daily"
+      time: "03:00"
     open-pull-requests-limit: 10
     labels:
       - "dependencies"
@@ -196,9 +199,8 @@ updates:
   - package-ecosystem: "docker"
     directory: "/apps/jellyseerr"
     schedule:
-      interval: "weekly"
-      day: "saturday"
-      time: "08:00"
+      interval: "daily"
+      time: "03:00"
     open-pull-requests-limit: 10
     labels:
       - "dependencies"
