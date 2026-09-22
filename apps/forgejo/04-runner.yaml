@@ -79,7 +79,7 @@ spec:
               mountPath: /var/lib/docker
 
         - name: runner
-          image: code.forgejo.org/forgejo/runner:13.0.0
+          image: code.forgejo.org/forgejo/runner:13.2.0
           command:
             - sh
             - -c
