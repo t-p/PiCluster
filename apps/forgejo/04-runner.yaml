@@ -51,7 +51,7 @@ spec:
         kubernetes.io/hostname: node05
       containers:
         - name: dind
-          image: docker:27-dind
+          image: docker:29-dind
           command:
             - dockerd-entrypoint.sh
             - --host=tcp://0.0.0.0:2375
