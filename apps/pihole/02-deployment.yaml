@@ -41,7 +41,7 @@ spec:
                 topologyKey: kubernetes.io/hostname
       containers:
         - name: pihole
-          image: pihole/pihole:2026.07.2
+          image: pihole/pihole:2026.09.0
           imagePullPolicy: Always
           env:
             - name: NTP_SERVERS
