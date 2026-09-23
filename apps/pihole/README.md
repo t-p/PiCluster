@@ -5,9 +5,12 @@ Pi-hole provides network-wide DNS ad blocking and filtering for the entire clust
 ## Architecture
 
 Pi-hole runs as a single container deployment with:
-- **Primary DNS**: Router (192.168.88.1) with NextDNS DoH integration
-- **DNSSEC**: Disabled (handled by router)
-- **Caching**: Pi-hole provides DNS caching for improved performance
+- **Primary upstream**: Internal Unbound recursive resolver (`unbound.dns.svc.cluster.local:5053`)
+- **Fallback upstream**: Router DNS (`192.168.88.1`)
+- **DNSSEC**: Validated by Unbound during recursive resolution
+- **Caching**: Pi-hole and Unbound both cache responses
+
+Normal queries use Unbound. The router is a secondary availability fallback.
 
 ## Features
 
@@ -21,8 +24,9 @@ Pi-hole runs as a single container deployment with:
 ## Configuration
 
 ### DNS Servers
-Pi-hole is configured to use:
-1. **Router (192.168.88.1)**: Primary DNS with NextDNS DoH integration
+Pi-hole uses strict primary/secondary ordering:
+1. **Unbound**: `unbound.dns.svc.cluster.local:5053`, full recursive IPv4 resolver with DNSSEC validation
+2. **Router**: `192.168.88.1`, used when Unbound is unavailable
 
 ### Storage
 - **Config**: `/mnt/storage/pihole/` (NFS persistent storage)
@@ -34,6 +38,7 @@ Pi-hole is configured to use:
 The Pi-hole deployment consists of:
 
 ### ConfigMaps
+- `unbound-config`: Unbound recursive resolver configuration
 - `pihole-config`: Main Pi-hole configuration
 - `pihole-custom-dnsmasq`: Custom dnsmasq settings for Kubernetes
 - `pihole-logging-config`: Log rotation and cleanup scripts
@@ -58,12 +63,7 @@ Pi-hole is configured as the primary DNS server for:
 - DHCP clients (via router configuration)
 - Kubernetes pods (via cluster DNS)
 
-The router (192.168.88.1) handles:
-- NextDNS DoH integration for privacy
-- DNSSEC validation
-- Upstream DNS resolution
-
-This architecture provides optimal performance and privacy while maintaining simplicity.
+Unbound handles full recursive resolution and DNSSEC validation by contacting authoritative DNS servers directly. The router at `192.168.88.1` is used only as Pi-hole's secondary fallback.
 
 ## Deployment Steps
 
@@ -78,6 +78,7 @@ kubectl create secret generic pihole-secret \
 ```bash
 kubectl apply -f apps/pihole/01-namespace-and-storage.yaml
 kubectl apply -f apps/pihole/04-configmaps.yaml
+kubectl apply -f apps/pihole/06-unbound.yaml
 kubectl apply -f apps/pihole/03-services.yaml
 kubectl apply -f apps/pihole/02-deployment.yaml
 kubectl apply -f apps/pihole/05-cronjob.yaml
