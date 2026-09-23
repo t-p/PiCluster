@@ -11,7 +11,8 @@ data:
   CONDITIONAL_FORWARDING: "false"
   CORS_HOSTS: ""
   CUSTOM_CACHE_SIZE: "10000"
-  DNS1: "192.168.88.1"
+  DNS1: "unbound.dns.svc.cluster.local#5053"
+  DNS2: "192.168.88.1"
   DNSMASQ_LISTENING: "all"
   DNSMASQ_LOG_ASYNC: "true"
   DNSMASQ_OPTS: "--local-service=false --bogus-priv=false"
@@ -45,7 +46,7 @@ data:
   INSTALL_WEB_SERVER: "true"
   INTERFACE: "eth0"
   LIGHTTPD: "true"
-  PIHOLE_DNS_: "192.168.88.1"
+  PIHOLE_DNS_: "unbound.dns.svc.cluster.local#5053;192.168.88.1"
   PIHOLE_INTERFACE: "eth0"
   QUERY_LOGGING: "true"
   SKIPGRAVITYONBOOT: "false"
@@ -86,6 +87,7 @@ data:
     # Explicitly disable local-service to allow queries from cluster networks
     # This overrides the local-service setting in the main config
     no-local-service
+    strict-order
   99-ntp-whitelist.conf: |
     # Allow NTP pool servers for time synchronization
     server=/pool.ntp.org/192.168.88.1

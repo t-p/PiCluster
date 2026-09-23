@@ -1,0 +1,103 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: unbound-config
+  namespace: dns
+  labels:
+    app: unbound
+    component: recursive-resolver
+data:
+  99-picluster.conf: |
+    server:
+      do-ip4: yes
+      do-ip6: no
+      prefer-ip6: no
+      access-control: 10.42.0.0/16 allow
+      access-control: 10.43.0.0/16 allow
+      hide-identity: yes
+      hide-version: yes
+      prefetch: yes
+      qname-minimisation: yes
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: unbound
+  namespace: dns
+  labels:
+    app: unbound
+    component: recursive-resolver
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: unbound
+      component: recursive-resolver
+  template:
+    metadata:
+      labels:
+        app: unbound
+        component: recursive-resolver
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: node01
+      containers:
+        - name: unbound
+          image: crazymax/unbound:1.26.1
+          ports:
+            - name: dns
+              containerPort: 5053
+              protocol: UDP
+            - name: dns-tcp
+              containerPort: 5053
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          readinessProbe:
+            tcpSocket:
+              port: dns
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: dns
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          volumeMounts:
+            - name: config
+              mountPath: /config/99-picluster.conf
+              subPath: 99-picluster.conf
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: unbound-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: unbound
+  namespace: dns
+  labels:
+    app: unbound
+    component: recursive-resolver
+spec:
+  type: ClusterIP
+  selector:
+    app: unbound
+    component: recursive-resolver
+  ports:
+    - name: dns
+      port: 5053
+      targetPort: dns
+      protocol: UDP
+    - name: dns-tcp
+      port: 5053
+      targetPort: dns-tcp
+      protocol: TCP
