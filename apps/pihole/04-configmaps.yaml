@@ -25,6 +25,7 @@ data:
   FTLCONF_CHECK_SHMEM: "false"
   FTLCONF_DBFILE: "/etc/pihole/pihole-FTL.db"
   FTLCONF_DBINTERVAL: "1.0"
+  FTLCONF_dns_upstreams: "unbound.dns.svc.cluster.local#5053;192.168.88.1"
   FTLCONF_IGNORE_LOCALHOST: "no"
   FTLCONF_LOCAL_IPV4: "0.0.0.0"
   FTLCONF_LOCAL_IPV6: "::"
