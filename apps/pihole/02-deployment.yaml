@@ -25,6 +25,8 @@ spec:
         app: pihole
         component: dns-server
     spec:
+      nodeSelector:
+        kubernetes.io/hostname: node02
       securityContext:
         fsGroup: 0
         runAsGroup: 0
