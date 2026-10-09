@@ -156,7 +156,7 @@ spec:
                       - node05
       containers:
         - name: postgres
-          image: pgvector/pgvector:0.8.7-pg15
+          image: pgvector/pgvector:0.8.7-pg15@sha256:47af0b65960b14f1c6945aa4ccae37836c632e9a6fe0eea9160936e616e5b2e9
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5432
@@ -237,7 +237,7 @@ spec:
             failureThreshold: 30
         # PostgreSQL Exporter sidecar for Prometheus metrics
         - name: postgres-exporter
-          image: prometheuscommunity/postgres-exporter:v0.20.1
+          image: prometheuscommunity/postgres-exporter:v0.20.1@sha256:ac5ec343104fae0e2d84a27bb8d69b38430a11910c5382cad85d478d2bab713e
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 9187

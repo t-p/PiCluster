@@ -42,7 +42,7 @@ spec:
                       - node06
       containers:
         - name: n8n
-          image: n8nio/n8n:2.42.3
+          image: n8nio/n8n:2.42.3@sha256:240eaa2a3d491adac5817aa4c3f1c521bb18ec79f6e448517158d5220ee0f37b
           imagePullPolicy: IfNotPresent
           ports:
             - name: http

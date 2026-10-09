@@ -44,7 +44,7 @@ spec:
         kubernetes.io/hostname: node01
       containers:
         - name: unbound
-          image: crazymax/unbound:1.26.1
+          image: crazymax/unbound:1.26.1@sha256:da4c53ad64574c63298c560a40f410f7dbf1ea12bc9d658235d7ef05301057c2
           ports:
             - name: dns
               containerPort: 5053
