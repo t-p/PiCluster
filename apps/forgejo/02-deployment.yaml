@@ -38,7 +38,7 @@ spec:
                       - node05
       containers:
         - name: forgejo
-          image: codeberg.org/forgejo/forgejo:16
+          image: codeberg.org/forgejo/forgejo:16.0.5@sha256:cf5f5ae6acf2ababca0ee3d255705b83a47f35b25e07fc931d694d60664053fe
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
