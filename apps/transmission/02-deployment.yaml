@@ -23,6 +23,7 @@ spec:
       containers:
         - name: gluetun
           image: qmcgaw/gluetun:v3.41.3
+          imagePullPolicy: IfNotPresent
           lifecycle:
             postStart:
               exec:
