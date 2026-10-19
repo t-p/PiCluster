@@ -41,7 +41,7 @@ spec:
         component: recursive-resolver
     spec:
       nodeSelector:
-        kubernetes.io/hostname: node01
+        kubernetes.io/hostname: node02
       containers:
         - name: unbound
           image: crazymax/unbound:1.26.1
