@@ -388,7 +388,8 @@ This K3s cluster hosts a complete media server stack with automated content mana
 | **Prometheus** | Metrics Collection | `http://192.168.88.126:30900` | NodePort | [Monitoring README](apps/monitoring/README.md) |
 | **n8n** | Workflow Automation & Integration | `http://192.168.88.126:32000` | NodePort | [n8n README](apps/n8n/README.md) |
 | **Jellyseerr** | Media Request Management | `http://192.168.88.126:30055` | NodePort | [Jellyseerr README](apps/jellyseerr/README.md) |
-| **Pathfinder** | Starknet Full Node (RPC) | Internal ClusterIP `:9545` | ClusterIP | [Pathfinder README](apps/pathfinder/) |
+| **Forgejo** | Self-hosted Git Service | `http://192.168.88.126:30030` | NodePort | [Forgejo README](apps/forgejo/README.md) |
+| **FlareSolverr** | CAPTCHA Proxy for Indexers | Internal ClusterIP `10.43.46.124:8191` | ClusterIP | [FlareSolverr README](apps/flaresolverr/README.md) |
 
 ### Detailed Application Information
 
