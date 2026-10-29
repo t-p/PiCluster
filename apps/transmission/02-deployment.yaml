@@ -108,16 +108,14 @@ spec:
               mountPath: /downloads
 
           livenessProbe:
-            httpGet:
-              path: /transmission/web/
+            tcpSocket:
               port: 9091
             initialDelaySeconds: 120
             periodSeconds: 30
             timeoutSeconds: 10
             failureThreshold: 3
           readinessProbe:
-            httpGet:
-              path: /transmission/web/
+            tcpSocket:
               port: 9091
             initialDelaySeconds: 90
             periodSeconds: 15
