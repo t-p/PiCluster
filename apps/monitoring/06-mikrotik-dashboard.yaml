@@ -1,0 +1,63 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mikrotik-dashboard
+  namespace: monitoring
+data:
+  mikrotik-overview.json: |
+    {
+      "title": "MikroTik Overview",
+      "uid": "mikrotik-overview",
+      "schemaVersion": 39,
+      "refresh": "30s",
+      "templating": {
+        "list": [
+          {
+            "name": "router",
+            "query": "label_values(mikrotik_up, router)",
+            "type": "query"
+          }
+        ]
+      },
+      "panels": [
+        {
+          "type": "stat",
+          "title": "API up",
+          "gridPos": {"x": 0, "y": 0, "w": 6, "h": 4},
+          "targets": [{"expr": "mikrotik_up{router=\"$router\"}"}]
+        },
+        {
+          "type": "stat",
+          "title": "CPU load %",
+          "gridPos": {"x": 6, "y": 0, "w": 6, "h": 4},
+          "targets": [{"expr": "mikrotik_cpu_load_percent{router=\"$router\"}"}]
+        },
+        {
+          "type": "stat",
+          "title": "Temperature °C",
+          "gridPos": {"x": 12, "y": 0, "w": 6, "h": 4},
+          "targets": [{"expr": "mikrotik_temperature_celsius{router=\"$router\"}"}]
+        },
+        {
+          "type": "stat",
+          "title": "Active DHCP leases",
+          "gridPos": {"x": 18, "y": 0, "w": 6, "h": 4},
+          "targets": [{"expr": "mikrotik_dhcp_active_leases{router=\"$router\"}"}]
+        },
+        {
+          "type": "timeseries",
+          "title": "Interface traffic",
+          "gridPos": {"x": 0, "y": 4, "w": 12, "h": 8},
+          "targets": [
+            {"expr": "rate(mikrotik_interface_rx_bytes_total{router=\"$router\"}[5m])", "legendFormat": "RX {{interface}}"},
+            {"expr": "rate(mikrotik_interface_tx_bytes_total{router=\"$router\"}[5m])", "legendFormat": "TX {{interface}}"}
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "Wi-Fi clients",
+          "gridPos": {"x": 12, "y": 4, "w": 12, "h": 8},
+          "targets": [{"expr": "mikrotik_wifi_clients{router=\"$router\"}", "legendFormat": "{{interface}}"}]
+        }
+      ]
+    }
