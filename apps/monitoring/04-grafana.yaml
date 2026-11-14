@@ -15,6 +15,23 @@ data:
         editable: true
 ---
 apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-provisioning
+  namespace: monitoring
+data:
+  dashboards.yaml: |
+    apiVersion: 1
+    providers:
+      - name: default
+        orgId: 1
+        type: file
+        disableDeletion: false
+        updateIntervalSeconds: 30
+        options:
+          path: /var/lib/grafana/dashboards
+---
+apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: grafana-config-pvc
@@ -90,6 +107,12 @@ spec:
             - name: grafana-datasources
               mountPath: /etc/grafana/provisioning/datasources
               readOnly: true
+            - name: grafana-dashboards
+              mountPath: /var/lib/grafana/dashboards
+              readOnly: true
+            - name: grafana-dashboard-provisioning
+              mountPath: /etc/grafana/provisioning/dashboards
+              readOnly: true
           resources:
             limits:
               cpu: 1
@@ -120,6 +143,12 @@ spec:
         - name: grafana-datasources
           configMap:
             name: grafana-datasources
+        - name: grafana-dashboards
+          configMap:
+            name: mikrotik-dashboard
+        - name: grafana-dashboard-provisioning
+          configMap:
+            name: grafana-dashboard-provisioning
 ---
 apiVersion: v1
 kind: Service
