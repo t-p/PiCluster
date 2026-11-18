@@ -58,6 +58,8 @@ spec:
                   key: secret-key
             - name: PAPERLESS_URL
               value: https://paperless.pfeiffer.pw
+            - name: PAPERLESS_ALLOWED_HOSTS
+              value: paperless.pfeiffer.pw,localhost,127.0.0.1
             - name: PAPERLESS_TIME_ZONE
               value: Europe/Amsterdam
             - name: PAPERLESS_OCR_LANGUAGE
@@ -97,17 +99,26 @@ spec:
             httpGet:
               path: /api/
               port: http
+              httpHeaders:
+                - name: Host
+                  value: paperless.pfeiffer.pw
             periodSeconds: 10
             failureThreshold: 30
           readinessProbe:
             httpGet:
               path: /api/
               port: http
+              httpHeaders:
+                - name: Host
+                  value: paperless.pfeiffer.pw
             periodSeconds: 15
           livenessProbe:
             httpGet:
               path: /api/
               port: http
+              httpHeaders:
+                - name: Host
+                  value: paperless.pfeiffer.pw
             periodSeconds: 30
       volumes:
         - name: data
